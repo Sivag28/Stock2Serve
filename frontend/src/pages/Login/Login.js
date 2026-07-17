@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaLock, FaStore, FaUser } from 'react-icons/fa';
+import { FaArrowLeft, FaLock, FaStore, FaUser, FaChevronDown } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../context/AuthContext';
 
@@ -71,14 +71,22 @@ const Login = () => {
           <h2 className="text-3xl font-bold tracking-tight text-slate-900">Sign in</h2>
           <p className="mt-2 text-sm text-slate-500">Use the role associated with your account.</p>
           <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-            <label className="block text-sm font-semibold text-slate-700">I am signing in as
-              <div className="relative mt-2">
-                <select value={role} onChange={(event) => setRole(event.target.value)} className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100">
-                  <option value="consumer">Consumer — Find food</option>
-                  <option value="merchant">Merchant — Share food</option>
-                </select>
-              </div>
-            </label>
+<label className="block text-sm font-semibold text-slate-700">
+  I am signing in as
+
+  <div className="relative mt-2">
+    <select
+      value={role}
+      onChange={(event) => setRole(event.target.value)}
+      className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm font-medium text-slate-800 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100"
+    >
+      <option value="consumer">Consumer — Find food</option>
+      <option value="merchant">Merchant — Share food</option>
+    </select>
+
+    <FaChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
+  </div>
+</label>
             <label className="block text-sm font-semibold text-slate-700">Email address
               <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" />
             </label>

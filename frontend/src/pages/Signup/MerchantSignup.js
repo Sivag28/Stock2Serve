@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../context/AuthContext';
-import { FaCamera, FaLocationArrow, FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
+import { FaCamera, FaLocationArrow, FaEye, FaEyeSlash, FaExclamationCircle, FaChevronDown } from 'react-icons/fa';
 import { validateEmail, validatePassword, validatePhone, validatePincode } from '../../utils/validators';
 
 const MerchantSignup = () => {
@@ -311,30 +311,44 @@ const MerchantSignup = () => {
       </div>
 
       {/* Business Category */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Business Category <span className="text-red-500">*</span></label>
-        <select
-          name="businessCategory"
-          value={formData.businessCategory}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 appearance-none bg-white ${
-            errors.businessCategory && touched.businessCategory
-              ? 'border-red-400 focus:ring-red-200'
-              : 'border-gray-200 focus:border-amber-400 focus:ring-amber-200'
-          }`}
-        >
-          <option value="">Select Category</option>
-          {businessCategories.map(cat => (
-            <option key={cat.value} value={cat.value}>{cat.label}</option>
-          ))}
-        </select>
-        {errors.businessCategory && touched.businessCategory && (
-          <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-            <FaExclamationCircle className="text-xs" /> {errors.businessCategory}
-          </p>
-        )}
-      </div>
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Business Category <span className="text-red-500">*</span>
+  </label>
+
+  <div className="relative">
+    <select
+      name="businessCategory"
+      value={formData.businessCategory}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      className={`w-full appearance-none bg-white px-4 py-2.5 pr-10 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 ${
+        errors.businessCategory && touched.businessCategory
+          ? 'border-red-400 focus:ring-red-200'
+          : 'border-gray-200 focus:border-amber-400 focus:ring-amber-200'
+      }`}
+    >
+      <option value="">Select Category</option>
+
+      {businessCategories.map((cat) => (
+        <option key={cat.value} value={cat.value}>
+          {cat.label}
+        </option>
+      ))}
+    </select>
+
+    <FaChevronDown
+      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+    />
+  </div>
+
+  {errors.businessCategory && touched.businessCategory && (
+    <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+      <FaExclamationCircle className="text-xs" />
+      {errors.businessCategory}
+    </p>
+  )}
+</div>
 
       {/* Email */}
       <div>
