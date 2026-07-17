@@ -12,5 +12,11 @@ router.post(
 );
 router.post('/login', authController.login);
 router.get('/me', authMiddleware, authController.getMe);
+router.put(
+  '/consumer/profile',
+  authMiddleware,
+  uploadMiddleware.single('profilePhoto'),
+  authController.updateConsumerProfile
+);
 
 module.exports = router;

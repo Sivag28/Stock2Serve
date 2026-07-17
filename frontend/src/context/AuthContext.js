@@ -21,8 +21,10 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = async () => {
     try {
       const response = await api.get('/auth/me');
+      // The response is the user object directly
       setUser(response.data);
     } catch (error) {
+      console.error('Error fetching user:', error);
       localStorage.removeItem('token');
       setToken(null);
       delete api.defaults.headers.common['Authorization'];
@@ -32,16 +34,23 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password, expectedRole) => {
-    const response = await api.post('/auth/login', { email, password });
-    const { token, user } = response.data;
-    if (expectedRole && user.role !== expectedRole) {
-      throw new Error(`This account is registered as a ${user.role}. Please select that role and try again.`);
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      const { token, user } = response.data;
+      
+      // Check role if expectedRole is provided
+      if (expectedRole && user.role !== expectedRole) {
+        throw new Error(`This account is registered as a ${user.role}. Please select that role and try again.`);
+      }
+      
+      localStorage.setItem('token', token);
+      setToken(token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(user);
+      return user;
+    } catch (error) {
+      throw error;
     }
-    localStorage.setItem('token', token);
-    setToken(token);
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    setUser(user);
-    return user;
   };
 
   const register = async (formData) => {
@@ -63,12 +72,17 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
   const value = {
     user,
     loading,
     login,
     register,
     logout,
+    updateUser,
     isAuthenticated: !!user,
   };
 

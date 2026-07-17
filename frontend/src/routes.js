@@ -5,7 +5,9 @@ import Signup from './pages/Signup/Signup';
 import Login from './pages/Login/Login';
 
 import MerchantDashboard from './pages/Merchant/Dashboard/Dashboard';
+import MerchantProfile from './pages/Merchant/Profile/Profile';
 import ConsumerFeed from './pages/Consumer/Feed/Feed';
+import ConsumerProfile from './pages/Consumer/Profile/Profile';
 
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
@@ -25,10 +27,28 @@ const AppRoutes = () => {
       />
 
       <Route
+        path="/merchant/profile"
+        element={
+          <ProtectedRoute role="merchant">
+            <MerchantProfile />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/consumer/feed"
         element={
           <ProtectedRoute role="consumer">
             <ConsumerFeed />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/consumer/profile"
+        element={
+          <ProtectedRoute role="consumer">
+            <ConsumerProfile />
           </ProtectedRoute>
         }
       />
