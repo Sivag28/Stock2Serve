@@ -18,6 +18,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/merchant', require('./routes/merchantRoutes'));
+app.use('/api/listings', require('./routes/listingRoutes'));
+app.use('/api/claims', require('./routes/claimRoutes'));
 // Add other routes as needed
 
 // Error handling middleware
