@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaBoxOpen, FaEdit, FaTrash, FaPowerOff, FaClock, FaPlus, FaSearch } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import api from '../../../services/api';
+import { formatIndianTime } from '../../../utils/formatDate';
 
 const imageUrl = (image) => {
   if (!image) return null;
@@ -161,7 +162,7 @@ const MerchantListings = () => {
                   <p className="mt-2">{listing.quantity} Left</p>
                   <p className="mt-2 flex items-center gap-2 text-amber-700">
                     <FaClock />
-                    Pickup {listing.pickupStart} - {listing.pickupEnd}
+                    Pickup {formatIndianTime(listing.pickupStart)} - {formatIndianTime(listing.pickupEnd)} IST
                   </p>
                 </div>
 

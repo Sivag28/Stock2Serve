@@ -5,6 +5,14 @@ import Swal from 'sweetalert2';
 import { useAuth } from '../../../context/AuthContext';
 import { FaEdit, FaCamera, FaMapMarkerAlt, FaHome, FaSignOutAlt, FaTimes, FaSave } from 'react-icons/fa';
 import api from '../../../services/api';
+import { formatIndianTime, getIndianTimeParts, toIndianStoredTime } from '../../../utils/formatDate';
+
+const IndianTimePicker = ({ name, value, onChange, disabled }) => {
+  if (disabled) return <input type="text" value={formatIndianTime(value)} disabled className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5" />;
+  const parts = getIndianTimeParts(value);
+  const update = (key, nextValue) => onChange({ target: { name, value: toIndianStoredTime(key === 'hour' ? nextValue : parts.hour, key === 'minute' ? nextValue : parts.minute, key === 'meridiem' ? nextValue : parts.meridiem) } });
+  return <div className="grid grid-cols-3 gap-2"><input type="number" min="1" max="12" value={parts.hour} onChange={(event) => update('hour', Math.min(12, Math.max(1, Number(event.target.value || 1))))} className="min-w-0 rounded-lg border border-amber-300 px-2 py-2.5" aria-label="Hour" /><select value={parts.minute} onChange={(event) => update('minute', event.target.value)} className="rounded-lg border border-amber-300 bg-white px-2 py-2.5" aria-label="Minutes">{Array.from({ length: 60 }, (_, index) => <option key={index} value={String(index).padStart(2, '0')}>{String(index).padStart(2, '0')}</option>)}</select><select value={parts.meridiem} onChange={(event) => update('meridiem', event.target.value)} className="rounded-lg border border-amber-300 bg-white px-2 py-2.5"><option>AM</option><option>PM</option></select></div>;
+};
 
 const MerchantProfile = () => {
   const { user, updateUser, logout } = useAuth();
@@ -563,32 +571,18 @@ const MerchantProfile = () => {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="mb-1 block text-sm font-medium text-slate-700">
-                          Opening Time <span className="text-red-500">*</span>
+                          Opening Time (IST) <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="time"
-                          name="openingTime"
-                          value={profileData.openingTime}
-                          onChange={handleInputChange}
-                          disabled={!isEditing}
-                          className={`w-full rounded-lg border px-4 py-2.5 ${isEditing ? 'border-amber-300 bg-white' : 'border-slate-200 bg-slate-50'} ${errors.openingTime ? 'border-red-500' : ''}`}
-                        />
+                        <IndianTimePicker name="openingTime" value={profileData.openingTime} onChange={handleInputChange} disabled={!isEditing} />
                         {errors.openingTime && (
                           <p className="mt-1 text-sm text-red-500">{errors.openingTime}</p>
                         )}
                       </div>
                       <div>
                         <label className="mb-1 block text-sm font-medium text-slate-700">
-                          Closing Time <span className="text-red-500">*</span>
+                          Closing Time (IST) <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="time"
-                          name="closingTime"
-                          value={profileData.closingTime}
-                          onChange={handleInputChange}
-                          disabled={!isEditing}
-                          className={`w-full rounded-lg border px-4 py-2.5 ${isEditing ? 'border-amber-300 bg-white' : 'border-slate-200 bg-slate-50'} ${errors.closingTime ? 'border-red-500' : ''}`}
-                        />
+                        <IndianTimePicker name="closingTime" value={profileData.closingTime} onChange={handleInputChange} disabled={!isEditing} />
                         {errors.closingTime && (
                           <p className="mt-1 text-sm text-red-500">{errors.closingTime}</p>
                         )}

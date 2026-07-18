@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatIndianTime } from '../../utils/formatDate';
 import { FaClock, FaStore } from 'react-icons/fa';
 
 const ListingCard = ({ listing, onEdit, onDelete, onToggleStatus }) => {
@@ -19,7 +20,7 @@ const ListingCard = ({ listing, onEdit, onDelete, onToggleStatus }) => {
         <p className="mt-2">{listing.quantity} Left</p>
         <p className="mt-2 flex items-center gap-2 text-amber-700">
           <FaClock />
-          Pickup {listing.pickupStart} - {listing.pickupEnd}
+          Pickup {formatIndianTime(listing.pickupStart)} - {formatIndianTime(listing.pickupEnd)} IST
         </p>
       </div>
 

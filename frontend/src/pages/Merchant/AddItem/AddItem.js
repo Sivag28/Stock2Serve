@@ -4,6 +4,7 @@ import { FaPlus, FaArrowLeft, FaUpload } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import api from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { getIndianTimeParts, toIndianDateTimeInput, toIndianStoredTime } from '../../../utils/formatDate';
 
 const initialForm = {
   foodName: '',
@@ -12,8 +13,8 @@ const initialForm = {
   originalPrice: '',
   discountedPrice: '',
   quantity: '',
-  pickupStart: '',
-  pickupEnd: '',
+  pickupStart: '20:00',
+  pickupEnd: '22:00',
   expiryTime: '',
   foodType: 'veg',
   availableStatus: 'true',
@@ -41,6 +42,16 @@ const businessCategories = [
   { value: 'catering', label: 'Catering Service' },
   { value: 'other', label: 'Other' },
 ];
+
+const IndianTimePicker = ({ name, value, onChange }) => {
+  const parts = getIndianTimeParts(value);
+  const update = (key, nextValue) => onChange({ target: { name, value: toIndianStoredTime(key === 'hour' ? nextValue : parts.hour, key === 'minute' ? nextValue : parts.minute, key === 'meridiem' ? nextValue : parts.meridiem) } });
+  return <div className="grid grid-cols-[1fr_1fr_1fr] gap-2">
+    <input type="number" min="1" max="12" value={parts.hour} onChange={(event) => update('hour', Math.min(12, Math.max(1, Number(event.target.value || 1))))} className="min-w-0 rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-amber-500" aria-label="Hour" />
+    <select value={parts.minute} onChange={(event) => update('minute', event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none focus:border-amber-500" aria-label="Minutes">{Array.from({ length: 60 }, (_, index) => <option key={index} value={String(index).padStart(2, '0')}>{String(index).padStart(2, '0')}</option>)}</select>
+    <select value={parts.meridiem} onChange={(event) => update('meridiem', event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none focus:border-amber-500"><option>AM</option><option>PM</option></select>
+  </div>;
+};
 
 const MerchantAddItem = () => {
   const { user } = useAuth();
@@ -87,7 +98,7 @@ const MerchantAddItem = () => {
         quantity: editingListing.quantity || '',
         pickupStart: editingListing.pickupStart || '',
         pickupEnd: editingListing.pickupEnd || '',
-        expiryTime: editingListing.expiryTime ? new Date(editingListing.expiryTime).toISOString().slice(0, 16) : '',
+        expiryTime: toIndianDateTimeInput(editingListing.expiryTime),
         foodType: editingListing.foodType || 'veg',
         availableStatus: String(editingListing.availableStatus ?? true),
       });
@@ -214,17 +225,17 @@ const MerchantAddItem = () => {
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">Pickup Start</span>
-              <input type="time" name="pickupStart" value={form.pickupStart} onChange={handleChange} required className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-amber-500" />
+              <span className="mb-2 block text-sm font-semibold text-slate-700">Pickup Start (IST)</span>
+              <IndianTimePicker name="pickupStart" value={form.pickupStart} onChange={handleChange} />
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">Pickup End</span>
-              <input type="time" name="pickupEnd" value={form.pickupEnd} onChange={handleChange} required className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-amber-500" />
+              <span className="mb-2 block text-sm font-semibold text-slate-700">Pickup End (IST)</span>
+              <IndianTimePicker name="pickupEnd" value={form.pickupEnd} onChange={handleChange} />
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">Expiry Time</span>
+              <span className="mb-2 block text-sm font-semibold text-slate-700">Expiry Time (IST)</span>
               <input type="datetime-local" name="expiryTime" value={form.expiryTime} onChange={handleChange} required className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-amber-500" />
             </label>
 
