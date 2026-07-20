@@ -5,7 +5,7 @@ const claimSchema = new mongoose.Schema({
   consumerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   quantity: { type: Number, default: 1, min: 1 },
   pickupToken: { type: String, required: true, unique: true, uppercase: true, trim: true },
-  status: { type: String, enum: ['claimed', 'collected', 'cancelled'], default: 'claimed' },
+  status: { type: String, enum: ['claimed', 'collected', 'cancelled', 'expired'], default: 'claimed' },
   collectedAt: { type: Date, default: null },
 }, { timestamps: true });
 

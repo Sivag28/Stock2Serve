@@ -5,6 +5,16 @@ const Claim = require('../models/Claim');
 const path = require('path');
 const fs = require('fs');
 
+const parseIndianExpiryTime = ({ calendar, tokenexpiryTime, expiryTime }) => {
+  const hasCalendarDate = /^\d{4}-\d{2}-\d{2}$/.test(String(calendar || ''));
+  const hasTime = /^\d{2}:\d{2}$/.test(String(tokenexpiryTime || ''));
+  const value = hasCalendarDate && hasTime
+    ? `${calendar}T${tokenexpiryTime}:00+05:30`
+    : expiryTime;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 // Get merchant profile
 exports.getProfile = async (req, res) => {
   try {
@@ -114,11 +124,15 @@ exports.createListing = async (req, res) => {
       foodType,
       pickupStart,
       pickupEnd,
+      calendar,
+      tokenexpiryTime,
       expiryTime,
       availableStatus,
     } = req.body;
 
-    if (!foodName || !category || !originalPrice || !discountedPrice || !quantity || !pickupStart || !pickupEnd || !expiryTime) {
+    const parsedExpiryTime = parseIndianExpiryTime({ calendar, tokenexpiryTime, expiryTime });
+
+    if (!foodName || !category || !originalPrice || !discountedPrice || !quantity || !pickupStart || !pickupEnd || !parsedExpiryTime) {
       return res.status(400).json({ success: false, message: 'Please fill in all required fields' });
     }
 
@@ -136,7 +150,7 @@ exports.createListing = async (req, res) => {
       foodType,
       pickupStart,
       pickupEnd,
-      expiryTime: new Date(expiryTime),
+      expiryTime: parsedExpiryTime,
       availableStatus: normalizedAvailableStatus,
       image: req.file ? '/uploads/listings/' + req.file.filename : null,
       status: normalizedAvailableStatus ? 'active' : 'deactivated',
@@ -176,6 +190,8 @@ exports.updateListing = async (req, res) => {
       foodType,
       pickupStart,
       pickupEnd,
+      calendar,
+      tokenexpiryTime,
       expiryTime,
       availableStatus,
       status,
@@ -190,7 +206,11 @@ exports.updateListing = async (req, res) => {
     listing.foodType = foodType || listing.foodType;
     listing.pickupStart = pickupStart || listing.pickupStart;
     listing.pickupEnd = pickupEnd || listing.pickupEnd;
-    listing.expiryTime = expiryTime ? new Date(expiryTime) : listing.expiryTime;
+    const parsedExpiryTime = parseIndianExpiryTime({ calendar, tokenexpiryTime, expiryTime });
+    if ((calendar || tokenexpiryTime || expiryTime) && !parsedExpiryTime) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid calendar date and token expiry time' });
+    }
+    listing.expiryTime = parsedExpiryTime || listing.expiryTime;
     const normalizedAvailableStatus = availableStatus === undefined ? listing.availableStatus : availableStatus === 'false' ? false : true;
     listing.availableStatus = normalizedAvailableStatus;
     listing.status = status || (normalizedAvailableStatus ? 'active' : 'deactivated');

@@ -3,10 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaBars, FaBoxOpen, FaClock, FaMapMarkerAlt, FaSearch, FaSignOutAlt, FaTimes, FaUser } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../../context/AuthContext';
-import api from '../../../services/api';
+import api, { API_URL } from '../../../services/api';
 import { formatIndianTime } from '../../../utils/formatDate';
 
-const imageUrl = (image) => image ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${image}` : null;
+const imageUrl = (image) => image ? `${API_URL}${image}` : null;
 
 const ConsumerFeed = () => {
   const { user, logout } = useAuth();

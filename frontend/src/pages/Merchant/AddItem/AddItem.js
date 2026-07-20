@@ -4,7 +4,7 @@ import { FaPlus, FaArrowLeft, FaUpload } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import api from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
-import { getIndianTimeParts, toIndianDateTimeInput, toIndianStoredTime } from '../../../utils/formatDate';
+import { getIndianTimeParts, toIndianDateTimeInput, toIndianExpiryDateTime, toIndianStoredTime } from '../../../utils/formatDate';
 
 const initialForm = {
   foodName: '',
@@ -13,9 +13,10 @@ const initialForm = {
   originalPrice: '',
   discountedPrice: '',
   quantity: '',
+  calendar: toIndianDateTimeInput(new Date()).split('T')[0],
   pickupStart: '20:00',
   pickupEnd: '22:00',
-  expiryTime: '',
+  tokenexpiryTime: '22:00',
   foodType: 'veg',
   availableStatus: 'true',
 };
@@ -96,9 +97,10 @@ const MerchantAddItem = () => {
         originalPrice: editingListing.originalPrice || '',
         discountedPrice: editingListing.discountedPrice || '',
         quantity: editingListing.quantity || '',
+        calendar: toIndianDateTimeInput(editingListing.expiryTime).split('T')[0] || '',
         pickupStart: editingListing.pickupStart || '',
         pickupEnd: editingListing.pickupEnd || '',
-        expiryTime: toIndianDateTimeInput(editingListing.expiryTime),
+        tokenexpiryTime: toIndianDateTimeInput(editingListing.expiryTime).split('T')[1] || '',
         foodType: editingListing.foodType || 'veg',
         availableStatus: String(editingListing.availableStatus ?? true),
       });
@@ -107,7 +109,13 @@ const MerchantAddItem = () => {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+      // Keep expiry aligned with pickup end by default. Merchants can still
+      // change Token Expiry Time afterwards if they need a different time.
+      ...(name === 'pickupEnd' ? { tokenexpiryTime: value } : {}),
+    }));
   };
 
   const handleSubmit = async (event) => {
@@ -117,6 +125,7 @@ const MerchantAddItem = () => {
     try {
       const formData = new FormData();
       Object.entries(form).forEach(([key, value]) => formData.append(key, value));
+      formData.append('expiryTime', toIndianExpiryDateTime(form.tokenexpiryTime, form.calendar));
       if (image) formData.append('image', image);
 
       if (editingListing) {
@@ -225,6 +234,11 @@ const MerchantAddItem = () => {
             </label>
 
             <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-slate-700">Calendar</span>
+              <input type="date" name="calendar" value={form.calendar} onChange={handleChange} required className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-amber-500" />
+            </label>
+
+            <label className="block">
               <span className="mb-2 block text-sm font-semibold text-slate-700">Pickup Start (IST)</span>
               <IndianTimePicker name="pickupStart" value={form.pickupStart} onChange={handleChange} />
             </label>
@@ -235,8 +249,8 @@ const MerchantAddItem = () => {
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">Expiry Time (IST)</span>
-              <input type="datetime-local" name="expiryTime" value={form.expiryTime} onChange={handleChange} required className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-amber-500" />
+              <span className="mb-2 block text-sm font-semibold text-slate-700">Token Expiry Time (IST)</span>
+              <IndianTimePicker name="tokenexpiryTime" value={form.tokenexpiryTime} onChange={handleChange} />
             </label>
 
             <label className="block">

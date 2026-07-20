@@ -43,3 +43,13 @@ export const toIndianDateTimeInput = (date) => {
   }).formatToParts(new Date(date)).reduce((result, part) => ({ ...result, [part.type]: part.value }), {});
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 };
+
+// Store a time selected by a merchant as an actual IST date/time, regardless of
+// the browser's local timezone.
+export const toIndianExpiryDateTime = (time, date = new Date()) => {
+  if (!time) return '';
+  const indianDate = /^\d{4}-\d{2}-\d{2}$/.test(String(date))
+    ? date
+    : toIndianDateTimeInput(date).split('T')[0];
+  return new Date(`${indianDate}T${time}:00+05:30`).toISOString();
+};

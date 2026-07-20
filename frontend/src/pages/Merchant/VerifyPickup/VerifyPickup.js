@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaCheckCircle, FaQrcode, FaArrowLeft } from 'react-icons/fa';
+import Swal from 'sweetalert2';
 import api from '../../../services/api';
+import { formatIndianDateTime } from '../../../utils/formatDate';
 
 const MerchantVerifyPickup = () => {
   const [token, setToken] = useState('');
@@ -17,7 +19,16 @@ const MerchantVerifyPickup = () => {
       setResult({ type: 'success', message: response.data.message, claim: response.data.claim });
       setToken('');
     } catch (error) {
-      setResult({ type: 'error', message: error.response?.data?.message || 'Unable to verify this pickup token.' });
+      const responseData = error.response?.data;
+      if (responseData?.code === 'TOKEN_EXPIRED') {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Token expired',
+          html: `<p>This pickup token expired at <strong>${formatIndianDateTime(responseData.expiryTime)} IST</strong>.</p><p>It can no longer be used.</p>`,
+          confirmButtonColor: '#d97706',
+        });
+      }
+      setResult({ type: 'error', message: responseData?.message || 'Unable to verify this pickup token.' });
     } finally {
       setLoading(false);
     }

@@ -40,8 +40,16 @@ exports.getMyClaims = async (req, res) => {
   try {
     if (req.userRole !== 'consumer') return res.status(403).json({ success: false, message: 'Only consumers can view claims.' });
     const claims = await Claim.find({ consumerId: req.userId })
-      .populate({ path: 'listingId', select: 'foodName image pickupStart pickupEnd discountedPrice status merchantId', populate: { path: 'merchantId', select: 'shopName shopAddress city' } })
+      .populate({ path: 'listingId', select: 'foodName image pickupStart pickupEnd expiryTime discountedPrice status merchantId', populate: { path: 'merchantId', select: 'shopName shopAddress city' } })
       .sort({ createdAt: -1 });
+    const now = Date.now();
+    await Promise.all(claims.map((claim) => {
+      if (claim.status === 'claimed' && claim.listingId?.expiryTime?.getTime() <= now) {
+        claim.status = 'expired';
+        return claim.save();
+      }
+      return null;
+    }));
     res.json({ success: true, claims });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -62,6 +70,18 @@ exports.verifyPickup = async (req, res) => {
       return res.status(403).json({ success: false, message: 'This token does not belong to your business.' });
     }
     if (claim.status === 'collected') return res.status(409).json({ success: false, message: 'This pickup has already been collected.' });
+    if (!listing.expiryTime || listing.expiryTime.getTime() <= Date.now()) {
+      if (claim.status === 'claimed') {
+        claim.status = 'expired';
+        await claim.save();
+      }
+      return res.status(410).json({
+        success: false,
+        code: 'TOKEN_EXPIRED',
+        message: 'This pickup token has expired and can no longer be used.',
+        expiryTime: listing.expiryTime,
+      });
+    }
     if (claim.status !== 'claimed') return res.status(409).json({ success: false, message: 'This claim is no longer active.' });
 
     claim.status = 'collected';

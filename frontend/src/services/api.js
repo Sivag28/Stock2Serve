@@ -1,7 +1,15 @@
 // frontend/src/services/api.js
 import axios from 'axios';
 
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const configuredApiUrl = process.env.REACT_APP_API_URL;
+const sameHostApiUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+
+// When the app is opened from another device on the network, `localhost`
+// refers to that device. Use the host serving the frontend instead, unless a
+// deployed API URL is explicitly configured.
+export const API_URL = (configuredApiUrl || sameHostApiUrl)
+  .replace(/\/api\/?$/, '')
+  .replace(/\/$/, '');
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
