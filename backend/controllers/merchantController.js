@@ -153,6 +153,8 @@ exports.createListing = async (req, res) => {
       expiryTime: parsedExpiryTime,
       availableStatus: normalizedAvailableStatus,
       image: req.file ? '/uploads/listings/' + req.file.filename : null,
+      imageData: req.file ? fs.readFileSync(req.file.path) : null,
+      imageMimeType: req.file?.mimetype || null,
       status: normalizedAvailableStatus ? 'active' : 'deactivated',
     });
 
@@ -223,6 +225,8 @@ exports.updateListing = async (req, res) => {
         }
       }
       listing.image = '/uploads/listings/' + req.file.filename;
+      listing.imageData = fs.readFileSync(req.file.path);
+      listing.imageMimeType = req.file.mimetype;
     }
 
     await listing.save();

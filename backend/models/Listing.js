@@ -45,6 +45,18 @@ const listingSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  // Kept in MongoDB so listings created from one development laptop can be
+  // displayed by another laptop using the same database.
+  imageData: {
+    type: Buffer,
+    select: false,
+    default: null,
+  },
+  imageMimeType: {
+    type: String,
+    select: false,
+    default: null,
+  },
   foodType: {
     type: String,
     enum: ['veg', 'non-veg'],
