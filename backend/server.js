@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const { timingForClaim, isExpired } = require('./utils/claimTiming');
 
 dotenv.config();
 
@@ -77,10 +78,10 @@ mongoose
     const expireClaims = async () => {
       const Claim = require('./models/Claim');
       const expiredCandidates = await Claim.find({ status: 'claimed' })
-        .populate('listingId', 'expiryTime');
+        .populate('listingId', 'pickupStart pickupEnd expiryTime');
       const now = Date.now();
       await Promise.all(expiredCandidates.map(async (claim) => {
-        if (claim.listingId?.expiryTime?.getTime() <= now) {
+        if (isExpired(timingForClaim(claim, claim.listingId), now)) {
           claim.status = 'expired';
           await claim.save();
           io.to(`consumer:${claim.consumerId}`).emit('claim-updated', {

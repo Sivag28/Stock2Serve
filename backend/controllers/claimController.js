@@ -1,5 +1,6 @@
 const Claim = require('../models/Claim');
 const Listing = require('../models/Listing');
+const { timingForListing, timingForClaim, isExpired } = require('../utils/claimTiming');
 
 const generatePickupToken = () => `S2S-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
@@ -16,10 +17,21 @@ exports.createClaim = async (req, res) => {
     );
     if (!listing) return res.status(409).json({ success: false, message: 'This item is no longer available.' });
 
+    const listingTiming = timingForListing(listing);
+    if (isExpired(listingTiming)) {
+      await Listing.findByIdAndUpdate(listing._id, { $inc: { quantity: 1 } });
+      return res.status(409).json({ success: false, message: 'The pickup or token window has already expired.' });
+    }
+
     let claim;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        claim = await Claim.create({ listingId: listing._id, consumerId: req.userId, pickupToken: generatePickupToken() });
+        claim = await Claim.create({
+          listingId: listing._id,
+          consumerId: req.userId,
+          pickupToken: generatePickupToken(),
+          ...listingTiming,
+        });
         break;
       } catch (error) {
         if (error.code !== 11000) throw error;
@@ -37,7 +49,12 @@ exports.createClaim = async (req, res) => {
       quantity: listing.quantity,
     });
 
-    res.status(201).json({ success: true, message: 'Food claimed successfully.', claim: { _id: claim._id, pickupToken: claim.pickupToken, pickupStart: listing.pickupStart, pickupEnd: listing.pickupEnd, foodName: listing.foodName } });
+    res.status(201).json({ success: true, message: 'Food claimed successfully.', claim: {
+      _id: claim._id, pickupToken: claim.pickupToken, pickupStart: listing.pickupStart,
+      pickupEnd: listing.pickupEnd, pickupWindowStart: claim.pickupWindowStart,
+      pickupWindowEnd: claim.pickupWindowEnd, tokenExpiresAt: claim.tokenExpiresAt,
+      foodName: listing.foodName,
+    } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -51,7 +68,7 @@ exports.getMyClaims = async (req, res) => {
       .sort({ createdAt: -1 });
     const now = Date.now();
     await Promise.all(claims.map((claim) => {
-      if (claim.status === 'claimed' && claim.listingId?.expiryTime?.getTime() <= now) {
+      if (claim.status === 'claimed' && isExpired(timingForClaim(claim, claim.listingId), now)) {
         claim.status = 'expired';
         return claim.save().then(() => {
           req.app.get('io').to(`consumer:${claim.consumerId}`).emit('claim-updated', {
@@ -63,6 +80,22 @@ exports.getMyClaims = async (req, res) => {
       return null;
     }));
     res.json({ success: true, claims });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.expireClaim = async (req, res) => {
+  try {
+    if (req.userRole !== 'consumer') return res.status(403).json({ success: false, message: 'Only consumers can expire claims.' });
+    const claim = await Claim.findOne({ _id: req.params.id, consumerId: req.userId }).populate('listingId', 'pickupStart pickupEnd expiryTime');
+    if (!claim) return res.status(404).json({ success: false, message: 'Claim not found.' });
+    if (claim.status === 'claimed' && isExpired(timingForClaim(claim, claim.listingId))) {
+      claim.status = 'expired';
+      await claim.save();
+      req.app.get('io').to(`consumer:${claim.consumerId}`).emit('claim-updated', { claimId: String(claim._id), status: 'expired' });
+    }
+    res.json({ success: true, status: claim.status });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -82,7 +115,8 @@ exports.verifyPickup = async (req, res) => {
       return res.status(403).json({ success: false, message: 'This token does not belong to your business.' });
     }
     if (claim.status === 'collected') return res.status(409).json({ success: false, message: 'This pickup has already been collected.' });
-    if (!listing.expiryTime || listing.expiryTime.getTime() <= Date.now()) {
+    const timing = timingForClaim(claim, listing);
+    if (isExpired(timing)) {
       if (claim.status === 'claimed') {
         claim.status = 'expired';
         await claim.save();
@@ -95,8 +129,11 @@ exports.verifyPickup = async (req, res) => {
         success: false,
         code: 'TOKEN_EXPIRED',
         message: 'This pickup token has expired and can no longer be used.',
-        expiryTime: listing.expiryTime,
+        expiryTime: timing.tokenExpiresAt || timing.pickupWindowEnd,
       });
+    }
+    if (timing.pickupWindowStart && timing.pickupWindowStart.getTime() > Date.now()) {
+      return res.status(409).json({ success: false, code: 'PICKUP_NOT_STARTED', message: 'This pickup window has not started yet.' });
     }
     if (claim.status !== 'claimed') return res.status(409).json({ success: false, message: 'This claim is no longer active.' });
 
