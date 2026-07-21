@@ -8,6 +8,7 @@ const {
   updateListing,
   deleteListing,
   getDashboardStats,
+  getClaimHistory,
 } = require('../controllers/merchantController');
 const auth = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -20,5 +21,6 @@ router.get('/listings', auth, getListings);
 router.put('/listing/:id', auth, upload.single('image'), updateListing);
 router.delete('/listing/:id', auth, deleteListing);
 router.get('/dashboard-stats', auth, getDashboardStats);
+router.get('/claim-history', auth, getClaimHistory);
 
 module.exports = router;

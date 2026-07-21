@@ -8,18 +8,20 @@ exports.createClaim = async (req, res) => {
   try {
     if (req.userRole !== 'consumer') return res.status(403).json({ success: false, message: 'Only consumers can claim food.' });
     const listingId = req.body.listingId;
+    const quantity = Number(req.body.quantity);
     if (!listingId) return res.status(400).json({ success: false, message: 'A food listing is required.' });
+    if (!Number.isInteger(quantity) || quantity < 1) return res.status(400).json({ success: false, message: 'Please choose a valid quantity.' });
 
     const listing = await Listing.findOneAndUpdate(
-      { _id: listingId, status: 'active', availableStatus: true, quantity: { $gt: 0 }, expiryTime: { $gt: new Date() } },
-      { $inc: { quantity: -1 } },
+      { _id: listingId, status: 'active', availableStatus: true, quantity: { $gte: quantity }, expiryTime: { $gt: new Date() } },
+      { $inc: { quantity: -quantity } },
       { new: true }
     );
     if (!listing) return res.status(409).json({ success: false, message: 'This item is no longer available.' });
 
     const listingTiming = timingForListing(listing);
     if (isExpired(listingTiming)) {
-      await Listing.findByIdAndUpdate(listing._id, { $inc: { quantity: 1 } });
+      await Listing.findByIdAndUpdate(listing._id, { $inc: { quantity } });
       return res.status(409).json({ success: false, message: 'The pickup or token window has already expired.' });
     }
 
@@ -29,6 +31,7 @@ exports.createClaim = async (req, res) => {
         claim = await Claim.create({
           listingId: listing._id,
           consumerId: req.userId,
+          quantity,
           pickupToken: generatePickupToken(),
           ...listingTiming,
         });
@@ -38,7 +41,7 @@ exports.createClaim = async (req, res) => {
       }
     }
     if (!claim) {
-      await Listing.findByIdAndUpdate(listing._id, { $inc: { quantity: 1 } });
+      await Listing.findByIdAndUpdate(listing._id, { $inc: { quantity } });
       return res.status(500).json({ success: false, message: 'Unable to create a pickup token. Please try again.' });
     }
 
@@ -48,12 +51,14 @@ exports.createClaim = async (req, res) => {
       listingId: String(listing._id),
       quantity: listing.quantity,
     });
+    const historyClaim = await Claim.findById(claim._id).populate('consumerId', 'fullName').populate('listingId', 'foodName discountedPrice merchantId');
+    req.app.get('io').to(`merchant:${listing.merchantId}`).emit('merchant-claim-created', { claim: historyClaim });
 
     res.status(201).json({ success: true, message: 'Food claimed successfully.', claim: {
       _id: claim._id, pickupToken: claim.pickupToken, pickupStart: listing.pickupStart,
       pickupEnd: listing.pickupEnd, pickupWindowStart: claim.pickupWindowStart,
       pickupWindowEnd: claim.pickupWindowEnd, tokenExpiresAt: claim.tokenExpiresAt,
-      foodName: listing.foodName,
+      foodName: listing.foodName, quantity,
     } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -75,6 +80,7 @@ exports.getMyClaims = async (req, res) => {
             claimId: String(claim._id),
             status: 'expired',
           });
+          req.app.get('io').to(`merchant:${claim.listingId.merchantId._id || claim.listingId.merchantId}`).emit('merchant-claim-updated', { claimId: String(claim._id), status: 'expired' });
         });
       }
       return null;
@@ -88,12 +94,13 @@ exports.getMyClaims = async (req, res) => {
 exports.expireClaim = async (req, res) => {
   try {
     if (req.userRole !== 'consumer') return res.status(403).json({ success: false, message: 'Only consumers can expire claims.' });
-    const claim = await Claim.findOne({ _id: req.params.id, consumerId: req.userId }).populate('listingId', 'pickupStart pickupEnd expiryTime');
+    const claim = await Claim.findOne({ _id: req.params.id, consumerId: req.userId }).populate('listingId', 'pickupStart pickupEnd expiryTime merchantId');
     if (!claim) return res.status(404).json({ success: false, message: 'Claim not found.' });
     if (claim.status === 'claimed' && isExpired(timingForClaim(claim, claim.listingId))) {
       claim.status = 'expired';
       await claim.save();
       req.app.get('io').to(`consumer:${claim.consumerId}`).emit('claim-updated', { claimId: String(claim._id), status: 'expired' });
+      req.app.get('io').to(`merchant:${claim.listingId.merchantId}`).emit('merchant-claim-updated', { claimId: String(claim._id), status: 'expired' });
     }
     res.json({ success: true, status: claim.status });
   } catch (error) {
@@ -124,6 +131,7 @@ exports.verifyPickup = async (req, res) => {
           claimId: String(claim._id),
           status: 'expired',
         });
+        req.app.get('io').to(`merchant:${listing.merchantId}`).emit('merchant-claim-updated', { claimId: String(claim._id), status: 'expired' });
       }
       return res.status(410).json({
         success: false,
@@ -145,6 +153,7 @@ exports.verifyPickup = async (req, res) => {
       status: 'collected',
       collectedAt: claim.collectedAt,
     });
+    req.app.get('io').to(`merchant:${listing.merchantId}`).emit('merchant-claim-updated', { claimId: String(claim._id), status: 'collected', collectedAt: claim.collectedAt });
     return res.json({ success: true, message: 'Pickup verified and marked as collected.', claim: { listingName: listing.foodName, customerName: claim.consumerId?.fullName || 'Customer' } });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaBars, FaBoxOpen, FaClipboardList, FaDollarSign, FaHome, FaPlus, FaRecycle, FaSignOutAlt, FaStore, FaTimes, FaUser } from 'react-icons/fa';
+import { FaBars, FaBoxOpen, FaClipboardList, FaDollarSign, FaHistory, FaHome, FaPlus, FaRecycle, FaSignOutAlt, FaStore, FaTimes, FaUser } from 'react-icons/fa';
 import { useAuth } from '../../../context/AuthContext';
 import api from '../../../services/api';
 
@@ -9,6 +9,7 @@ const navItems = [
   { path: '/merchant/add-item', label: 'Add Item', icon: <FaPlus /> },
   { path: '/merchant/inventory', label: 'Inventory', icon: <FaBoxOpen /> },
   { path: '/merchant/verify-pickup', label: 'Verify pickup', icon: <FaClipboardList /> },
+  { path: '/merchant/history', label: 'History', icon: <FaHistory /> },
   { path: '/merchant/profile', label: 'Profile', icon: <FaUser /> },
 ];
 

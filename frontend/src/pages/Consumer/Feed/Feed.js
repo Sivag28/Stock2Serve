@@ -65,13 +65,21 @@ const ConsumerFeed = () => {
   }, []);
 
   const claimFood = async (listing) => {
-    const confirmation = await Swal.fire({ icon: 'question', title: `Claim ${listing.foodName}?`, text: `Pickup is available from ${formatIndianTime(listing.pickupStart)} to ${formatIndianTime(listing.pickupEnd)} IST.`, showCancelButton: true, confirmButtonText: 'Claim food', cancelButtonText: 'Not now', confirmButtonColor: '#d97706' });
+    const confirmation = await Swal.fire({
+      icon: 'question', title: `Claim ${listing.foodName}?`,
+      text: `Pickup is available from ${formatIndianTime(listing.pickupStart)} to ${formatIndianTime(listing.pickupEnd)} IST.`,
+      input: 'number', inputLabel: 'Quantity', inputValue: 1,
+      inputAttributes: { min: 1, max: listing.quantity, step: 1 },
+      inputValidator: (value) => (!Number.isInteger(Number(value)) || Number(value) < 1 || Number(value) > listing.quantity ? `Choose a quantity from 1 to ${listing.quantity}.` : undefined),
+      showCancelButton: true, confirmButtonText: 'Claim food', cancelButtonText: 'Not now', confirmButtonColor: '#d97706',
+    });
     if (!confirmation.isConfirmed) return;
+    const quantity = Number(confirmation.value);
     setClaimingId(listing._id);
     try {
-      const response = await api.post('/claims', { listingId: listing._id });
+      const response = await api.post('/claims', { listingId: listing._id, quantity });
       const claim = response.data.claim;
-      await Swal.fire({ icon: 'success', title: 'Food claimed!', html: `<p>Show this pickup token at the counter:</p><p style="font-size:1.5rem;font-weight:700;letter-spacing:.12em">${claim.pickupToken}</p><p>Pickup: ${formatIndianTime(claim.pickupStart)} – ${formatIndianTime(claim.pickupEnd)} IST</p>`, confirmButtonText: 'View my claims', confirmButtonColor: '#d97706' });
+      await Swal.fire({ icon: 'success', title: 'Food claimed!', html: `<p><strong>Quantity:</strong> ${claim.quantity}</p><p>Show this pickup token at the counter:</p><p style="font-size:1.5rem;font-weight:700;letter-spacing:.12em">${claim.pickupToken}</p><p>Pickup: ${formatIndianTime(claim.pickupStart)} – ${formatIndianTime(claim.pickupEnd)} IST</p>`, confirmButtonText: 'View my claims', confirmButtonColor: '#d97706' });
       navigate('/consumer/claims');
     } catch (error) {
       Swal.fire({ icon: 'error', title: 'Unable to claim food', text: error.response?.data?.message || 'Please try another item.', confirmButtonColor: '#d97706' });

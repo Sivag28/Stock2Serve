@@ -44,6 +44,7 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
   socket.join(`consumer:${socket.userId}`);
+  socket.join(`merchant:${socket.userId}`);
 });
 
 // Middleware
@@ -78,13 +79,17 @@ mongoose
     const expireClaims = async () => {
       const Claim = require('./models/Claim');
       const expiredCandidates = await Claim.find({ status: 'claimed' })
-        .populate('listingId', 'pickupStart pickupEnd expiryTime');
+        .populate('listingId', 'pickupStart pickupEnd expiryTime merchantId');
       const now = Date.now();
       await Promise.all(expiredCandidates.map(async (claim) => {
         if (isExpired(timingForClaim(claim, claim.listingId), now)) {
           claim.status = 'expired';
           await claim.save();
           io.to(`consumer:${claim.consumerId}`).emit('claim-updated', {
+            claimId: String(claim._id),
+            status: 'expired',
+          });
+          io.to(`merchant:${claim.listingId.merchantId}`).emit('merchant-claim-updated', {
             claimId: String(claim._id),
             status: 'expired',
           });

@@ -295,3 +295,19 @@ exports.getDashboardStats = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.getClaimHistory = async (req, res) => {
+  try {
+    if (req.userRole !== 'merchant') return res.status(403).json({ success: false, message: 'Only merchants can view claim history.' });
+    const listings = await Listing.find({ merchantId: req.userId }).select('_id');
+    const claims = await Claim.find({ listingId: { $in: listings.map((listing) => listing._id) } })
+      .populate('consumerId', 'fullName')
+      // Older claims predate the per-reservation tokenExpiresAt field, so also
+      // return the listing expiry as a backward-compatible display fallback.
+      .populate('listingId', 'foodName discountedPrice expiryTime')
+      .sort({ createdAt: -1 });
+    res.json({ success: true, claims });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

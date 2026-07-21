@@ -9,6 +9,7 @@ import MerchantProfile from './pages/Merchant/Profile/Profile';
 import MerchantAddItem from './pages/Merchant/AddItem/AddItem';
 import MerchantEditItem from './pages/Merchant/EditItem/EditItem';
 import MerchantVerifyPickup from './pages/Merchant/VerifyPickup/VerifyPickup';
+import MerchantHistory from './pages/Merchant/History/History';
 import MerchantListings from './pages/Merchant/Listings/Listings';
 import ConsumerFeed from './pages/Consumer/Feed/Feed';
 import ConsumerMyClaims from './pages/Consumer/MyClaims/MyClaims';
@@ -75,6 +76,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route path="/merchant/history" element={<ProtectedRoute role="merchant"><MerchantHistory /></ProtectedRoute>} />
 
       <Route
         path="/consumer/feed"
