@@ -30,6 +30,13 @@ exports.createClaim = async (req, res) => {
       return res.status(500).json({ success: false, message: 'Unable to create a pickup token. Please try again.' });
     }
 
+    // Every open consumer feed can update its remaining quantity without
+    // requesting the full listing collection again.
+    req.app.get('io').emit('listing-quantity-updated', {
+      listingId: String(listing._id),
+      quantity: listing.quantity,
+    });
+
     res.status(201).json({ success: true, message: 'Food claimed successfully.', claim: { _id: claim._id, pickupToken: claim.pickupToken, pickupStart: listing.pickupStart, pickupEnd: listing.pickupEnd, foodName: listing.foodName } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -46,7 +53,12 @@ exports.getMyClaims = async (req, res) => {
     await Promise.all(claims.map((claim) => {
       if (claim.status === 'claimed' && claim.listingId?.expiryTime?.getTime() <= now) {
         claim.status = 'expired';
-        return claim.save();
+        return claim.save().then(() => {
+          req.app.get('io').to(`consumer:${claim.consumerId}`).emit('claim-updated', {
+            claimId: String(claim._id),
+            status: 'expired',
+          });
+        });
       }
       return null;
     }));
@@ -74,6 +86,10 @@ exports.verifyPickup = async (req, res) => {
       if (claim.status === 'claimed') {
         claim.status = 'expired';
         await claim.save();
+        req.app.get('io').to(`consumer:${claim.consumerId._id}`).emit('claim-updated', {
+          claimId: String(claim._id),
+          status: 'expired',
+        });
       }
       return res.status(410).json({
         success: false,
@@ -87,6 +103,11 @@ exports.verifyPickup = async (req, res) => {
     claim.status = 'collected';
     claim.collectedAt = new Date();
     await claim.save();
+    req.app.get('io').to(`consumer:${claim.consumerId._id}`).emit('claim-updated', {
+      claimId: String(claim._id),
+      status: 'collected',
+      collectedAt: claim.collectedAt,
+    });
     return res.json({ success: true, message: 'Pickup verified and marked as collected.', claim: { listingName: listing.foodName, customerName: claim.consumerId?.fullName || 'Customer' } });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

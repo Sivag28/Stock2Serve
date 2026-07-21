@@ -29,7 +29,10 @@ const ConsumerFeed = () => {
   useEffect(() => {
     fetchListings();
 
-    const socket = io(API_URL, { transports: ['websocket', 'polling'] });
+    const socket = io(API_URL, {
+      auth: { token: localStorage.getItem('token') },
+      transports: ['websocket', 'polling'],
+    });
     const handleListingCreated = (listing) => {
       setListings((currentListings) => {
         // A reconnect or duplicate event must not add the same card twice.
@@ -40,9 +43,21 @@ const ConsumerFeed = () => {
       });
     };
 
+    const handleListingQuantityUpdated = ({ listingId, quantity }) => {
+      setListings((currentListings) => {
+        // An offer with no portions remaining is no longer claimable.
+        if (quantity <= 0) return currentListings.filter((item) => item._id !== listingId);
+        return currentListings.map((item) => (
+          item._id === listingId ? { ...item, quantity } : item
+        ));
+      });
+    };
+
     socket.on('listing-created', handleListingCreated);
+    socket.on('listing-quantity-updated', handleListingQuantityUpdated);
     return () => {
       socket.off('listing-created', handleListingCreated);
+      socket.off('listing-quantity-updated', handleListingQuantityUpdated);
       socket.disconnect();
     };
   }, []);

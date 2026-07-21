@@ -2,6 +2,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -24,6 +25,24 @@ app.set('io', io);
 io.on('connection', (socket) => {
   console.log(`Realtime client connected: ${socket.id}`);
   socket.on('disconnect', () => console.log(`Realtime client disconnected: ${socket.id}`));
+});
+
+// A socket is placed in a private room for its signed-in user. This lets us
+// update a claim without revealing it to any other consumer.
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token;
+    if (!token) return next(new Error('Authentication required'));
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.userId;
+    return next();
+  } catch (error) {
+    return next(new Error('Invalid or expired token'));
+  }
+});
+
+io.on('connection', (socket) => {
+  socket.join(`consumer:${socket.userId}`);
 });
 
 // Middleware
@@ -50,7 +69,30 @@ app.use((err, req, res, next) => {
 // Database connection
 mongoose
   .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/stock2serve')
-  .then(() => console.log('Connected to MongoDB'))
+  .then(() => {
+    console.log('Connected to MongoDB');
+
+    // Claims expire even if the consumer leaves the My Claims page open.
+    // Each affected consumer receives a private status update immediately.
+    const expireClaims = async () => {
+      const Claim = require('./models/Claim');
+      const expiredCandidates = await Claim.find({ status: 'claimed' })
+        .populate('listingId', 'expiryTime');
+      const now = Date.now();
+      await Promise.all(expiredCandidates.map(async (claim) => {
+        if (claim.listingId?.expiryTime?.getTime() <= now) {
+          claim.status = 'expired';
+          await claim.save();
+          io.to(`consumer:${claim.consumerId}`).emit('claim-updated', {
+            claimId: String(claim._id),
+            status: 'expired',
+          });
+        }
+      }));
+    };
+    expireClaims().catch((error) => console.error('Claim expiry check failed:', error));
+    setInterval(() => expireClaims().catch((error) => console.error('Claim expiry check failed:', error)), 30 * 1000);
+  })
   .catch((err) => console.error('MongoDB connection error:', err));
 
 const PORT = process.env.PORT || 5000;
