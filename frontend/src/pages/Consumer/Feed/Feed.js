@@ -2,6 +2,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaBars, FaBoxOpen, FaClock, FaMapMarkerAlt, FaSearch, FaSignOutAlt, FaTimes, FaUser } from 'react-icons/fa';
 import Swal from 'sweetalert2';
+import { io } from 'socket.io-client';
 import { useAuth } from '../../../context/AuthContext';
 import api, { API_URL } from '../../../services/api';
 import { formatIndianTime } from '../../../utils/formatDate';
@@ -25,7 +26,26 @@ const ConsumerFeed = () => {
     catch (error) { Swal.fire({ icon: 'error', title: 'Unable to load offers', text: error.response?.data?.message || 'Please refresh and try again.', confirmButtonColor: '#d97706' }); }
     finally { setLoading(false); }
   };
-  useEffect(() => { fetchListings(); }, []);
+  useEffect(() => {
+    fetchListings();
+
+    const socket = io(API_URL, { transports: ['websocket', 'polling'] });
+    const handleListingCreated = (listing) => {
+      setListings((currentListings) => {
+        // A reconnect or duplicate event must not add the same card twice.
+        if (currentListings.some((item) => item._id === listing._id)) return currentListings;
+        return [...currentListings, listing].sort(
+          (first, second) => new Date(first.expiryTime) - new Date(second.expiryTime),
+        );
+      });
+    };
+
+    socket.on('listing-created', handleListingCreated);
+    return () => {
+      socket.off('listing-created', handleListingCreated);
+      socket.disconnect();
+    };
+  }, []);
 
   const claimFood = async (listing) => {
     const confirmation = await Swal.fire({ icon: 'question', title: `Claim ${listing.foodName}?`, text: `Pickup is available from ${formatIndianTime(listing.pickupStart)} to ${formatIndianTime(listing.pickupEnd)} IST.`, showCancelButton: true, confirmButtonText: 'Claim food', cancelButtonText: 'Not now', confirmButtonColor: '#d97706' });

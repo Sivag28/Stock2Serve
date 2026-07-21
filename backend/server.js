@@ -1,5 +1,7 @@
 // backend/server.js
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -8,6 +10,21 @@ const path = require('path');
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: true,
+    methods: ['GET', 'POST'],
+  },
+});
+
+// Controllers use this shared instance to notify every open consumer feed.
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  console.log(`Realtime client connected: ${socket.id}`);
+  socket.on('disconnect', () => console.log(`Realtime client disconnected: ${socket.id}`));
+});
 
 // Middleware
 app.use(cors());
@@ -37,6 +54,6 @@ mongoose
   .catch((err) => console.error('MongoDB connection error:', err));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

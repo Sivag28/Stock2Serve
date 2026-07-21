@@ -158,6 +158,17 @@ exports.createListing = async (req, res) => {
       status: normalizedAvailableStatus ? 'active' : 'deactivated',
     });
 
+    // The consumer feed needs the merchant fields that are normally supplied
+    // by getActiveListings, so populate them before broadcasting.
+    const listingForConsumers = await Listing.findById(listing._id)
+      .populate('merchantId', 'shopName businessCategory shopAddress city');
+    if (listingForConsumers.status === 'active'
+      && listingForConsumers.availableStatus
+      && listingForConsumers.quantity > 0
+      && listingForConsumers.expiryTime > new Date()) {
+      req.app.get('io').emit('listing-created', listingForConsumers);
+    }
+
     res.status(201).json({ success: true, message: 'Listing created successfully', listing });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
