@@ -367,24 +367,30 @@ const ConsumerSignup = () => {
       {/* City & Pincode */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">City <span className="text-gray-400 text-xs">(Auto)</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
           <input
             type="text"
             name="city"
             value={formData.city}
-            readOnly
-            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
+            onChange={handleChange}
+            onBlur={handleBlur}
+            placeholder="City"
+            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-amber-400 focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Pincode <span className="text-gray-400 text-xs">(Auto)</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
           <input
             type="text"
             name="pincode"
             value={formData.pincode}
-            readOnly
-            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
+            onChange={handleChange}
+            onBlur={handleBlur}
+            inputMode="numeric"
+            placeholder="Pincode"
+            className={`w-full px-4 py-2.5 rounded-xl border-2 focus:outline-none ${errors.pincode && touched.pincode ? 'border-red-400' : 'border-gray-200 focus:border-amber-400'}`}
           />
+          {errors.pincode && touched.pincode && <p className="mt-1 flex items-center gap-1 text-xs text-red-500"><FaExclamationCircle className="text-xs" /> {errors.pincode}</p>}
         </div>
       </div>
 
