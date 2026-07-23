@@ -1,6 +1,7 @@
 const Claim = require('../models/Claim');
 const Listing = require('../models/Listing');
 const { timingForListing, timingForClaim, isExpired } = require('../utils/claimTiming');
+const { sendClaimConfirmationEmail } = require('../utils/emailService');
 
 const generatePickupToken = () => `S2S-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
@@ -51,8 +52,35 @@ exports.createClaim = async (req, res) => {
       listingId: String(listing._id),
       quantity: listing.quantity,
     });
-    const historyClaim = await Claim.findById(claim._id).populate('consumerId', 'fullName').populate('listingId', 'foodName discountedPrice merchantId');
+    const historyClaim = await Claim.findById(claim._id)
+      .populate('consumerId', 'fullName email')
+      .populate({
+        path: 'listingId',
+        select: 'foodName discountedPrice pickupStart pickupEnd merchantId',
+        populate: { path: 'merchantId', select: 'shopName' },
+      });
     req.app.get('io').to(`merchant:${listing.merchantId}`).emit('merchant-claim-created', { claim: historyClaim });
+
+    // A mail failure must never undo a confirmed reservation or restore its stock.
+    sendClaimConfirmationEmail({
+      consumer: historyClaim.consumerId,
+      merchant: historyClaim.listingId.merchantId,
+      listing: historyClaim.listingId,
+      claim,
+    }).then(async ({ sent, messageId }) => {
+      await Claim.findByIdAndUpdate(claim._id, {
+        emailStatus: sent ? 'sent' : 'skipped',
+        emailSentAt: sent ? new Date() : null,
+        emailError: null,
+      });
+      console.log(`Claim confirmation email ${sent ? 'accepted by Gmail' : 'skipped'} for ${claim._id}${messageId ? ` (${messageId})` : ''}`);
+    }).catch(async (error) => {
+      await Claim.findByIdAndUpdate(claim._id, {
+        emailStatus: 'failed',
+        emailError: String(error.message || error).slice(0, 500),
+      });
+      console.error(`Claim confirmation email failed for ${claim._id}:`, error.message);
+    });
 
     res.status(201).json({ success: true, message: 'Food claimed successfully.', claim: {
       _id: claim._id, pickupToken: claim.pickupToken, pickupStart: listing.pickupStart,

@@ -10,6 +10,9 @@ const claimSchema = new mongoose.Schema({
   pickupWindowStart: { type: Date, default: null },
   pickupWindowEnd: { type: Date, default: null },
   tokenExpiresAt: { type: Date, default: null },
+  emailStatus: { type: String, enum: ['pending', 'sent', 'skipped', 'failed'], default: 'pending' },
+  emailSentAt: { type: Date, default: null },
+  emailError: { type: String, default: null },
   status: { type: String, enum: ['claimed', 'collected', 'cancelled', 'expired'], default: 'claimed' },
   collectedAt: { type: Date, default: null },
 }, { timestamps: true });
