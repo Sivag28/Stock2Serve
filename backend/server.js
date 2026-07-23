@@ -92,6 +92,7 @@ mongoose
           },
         },
       }],
+      { updatePipeline: true },
     ).catch((error) => console.error('Merchant location backfill failed:', error));
 
     // Claims expire even if the consumer leaves the My Claims page open.
