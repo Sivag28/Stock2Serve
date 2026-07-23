@@ -11,8 +11,15 @@ import PickupWindowCountdown from '../../../components/PickupWindowCountdown';
 
 const imageUrl = (listing) => listing.image ? `${API_URL}/api/listings/${listing._id}/image` : null;
 
+const hasValidCoordinates = (user) => {
+  const latitude = Number(user?.latitude);
+  const longitude = Number(user?.longitude);
+  return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
+    && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
+};
+
 const ConsumerFeed = () => {
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [listings, setListings] = useState([]);
@@ -37,25 +44,37 @@ const ConsumerFeed = () => {
   }, []);
 
   useEffect(() => {
-    if (!navigator.geolocation) {
+    // A consumer's saved profile location is the chosen delivery/search area.
+    // Do not replace it with the device GPS location, which can belong to a
+    // different person or place when several accounts use the same device.
+    if (authLoading) return undefined;
+
+    if (hasValidCoordinates(user)) {
+      const coordinates = {
+        latitude: Number(user.latitude),
+        longitude: Number(user.longitude),
+      };
+      consumerLocation.current = coordinates;
+      setLocationStatus('ready');
+      fetchListings(coordinates);
+    } else if (!navigator.geolocation) {
       setLocationStatus('unsupported');
       setLoading(false);
-      return undefined;
+    } else {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          const coordinates = { latitude: coords.latitude, longitude: coords.longitude };
+          consumerLocation.current = coordinates;
+          setLocationStatus('ready');
+          fetchListings(coordinates);
+        },
+        () => {
+          setLocationStatus('denied');
+          setLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5 * 60 * 1000 },
+      );
     }
-
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        const coordinates = { latitude: coords.latitude, longitude: coords.longitude };
-        consumerLocation.current = coordinates;
-        setLocationStatus('ready');
-        fetchListings(coordinates);
-      },
-      () => {
-        setLocationStatus('denied');
-        setLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5 * 60 * 1000 },
-    );
 
     const socket = io(API_URL, {
       auth: { token: localStorage.getItem('token') },
@@ -82,7 +101,7 @@ const ConsumerFeed = () => {
       socket.off('listing-quantity-updated', handleListingQuantityUpdated);
       socket.disconnect();
     };
-  }, [fetchListings]);
+  }, [authLoading, fetchListings, user]);
 
   const claimFood = async (listing) => {
     const confirmation = await Swal.fire({
@@ -116,7 +135,7 @@ const ConsumerFeed = () => {
   return <div className="min-h-screen bg-stone-50">
     <nav className="border-b bg-white shadow-sm"><div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6"><div className="flex items-center gap-3"><button className="text-xl text-slate-600 md:hidden" onClick={() => setMenuOpen((value) => !value)}>{menuOpen ? <FaTimes /> : <FaBars />}</button><div><h1 className="text-xl font-bold">STOCK2<span className="text-amber-600">SERVE</span></h1><p className="hidden text-xs text-slate-500 md:block">Hello, {user?.fullName}</p></div></div><div className="hidden items-center gap-2 md:flex">{nav.map((item) => <Link key={item.path} to={item.path} className={`rounded-lg px-4 py-2 text-sm font-medium ${location.pathname === item.path ? 'bg-amber-100 text-amber-700' : 'text-slate-600 hover:bg-slate-100'}`}>{item.label}</Link>)}<button onClick={leave} className="ml-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"><FaSignOutAlt className="mr-2 inline" />Logout</button></div><button onClick={leave} className="rounded-lg bg-red-500 px-3 py-2 text-white md:hidden"><FaSignOutAlt /></button></div>{menuOpen && <div className="border-t px-4 py-2 md:hidden">{nav.map((item) => <Link key={item.path} to={item.path} className="block rounded-lg px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>{item.label}</Link>)}</div>}</nav>
     <main className="mx-auto max-w-7xl p-4 md:p-6"><div className="mb-6"><h2 className="text-3xl font-bold">Fresh food nearby</h2><p className="mt-1 text-slate-500">Claim end-of-day offers before they are gone.</p></div><label className="relative mb-7 block max-w-lg"><FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search food, shop, or category" className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 outline-none focus:border-amber-500" /></label>
-      {loading ? <div className="rounded-2xl bg-white p-12 text-center text-slate-500">Finding nearby offers…</div> : locationStatus !== 'ready' ? <div className="rounded-2xl border border-dashed border-amber-200 bg-white p-12 text-center"><FaMapMarkerAlt className="mx-auto text-4xl text-amber-400" /><h3 className="mt-4 text-lg font-bold">Location access is needed</h3><p className="mt-1 text-slate-500">Allow location access in your browser to see food offers within 10 km.</p></div> : filtered.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center"><FaBoxOpen className="mx-auto text-4xl text-amber-300" /><h3 className="mt-4 text-lg font-bold">No nearby offers right now</h3><p className="mt-1 text-slate-500">There are no active offers within 10 km. Try again soon.</p></div> : <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{filtered.map((item) => <article key={item._id} className="overflow-hidden rounded-2xl bg-white shadow-sm"><div className="h-48 bg-amber-50">{imageUrl(item) ? <img src={imageUrl(item)} alt={item.foodName} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-5xl text-amber-300"><FaBoxOpen /></div>}</div><div className="p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="text-xl font-bold">{item.foodName}</h3><p className="text-sm text-slate-500">{item.category}</p></div><span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">{item.quantity} left</span></div><p className="mt-3 min-h-10 text-sm text-slate-600">{item.description || 'Fresh surplus food available for pickup.'}</p><p className="mt-3 text-lg font-bold text-amber-700">₹{item.discountedPrice} <span className="text-sm font-normal text-slate-400 line-through">₹{item.originalPrice}</span></p><p className="mt-3 flex items-center gap-2 text-sm text-slate-500"><FaMapMarkerAlt className="text-amber-600" />{item.merchantId?.shopName || 'Local store'}, {item.merchantId?.city || 'Nearby'}</p><p className="mt-2 flex items-center gap-2 text-sm text-slate-500"><FaClock className="text-amber-600" />Pickup {formatIndianTime(item.pickupStart)} – {formatIndianTime(item.pickupEnd)} IST</p><PickupWindowCountdown listing={item} onExpired={() => removeExpiredListing(item._id)} /><button disabled={claimingId === item._id} onClick={() => claimFood(item)} className="mt-5 w-full rounded-xl bg-amber-600 py-3 font-semibold text-white hover:bg-amber-700 disabled:opacity-60">{claimingId === item._id ? 'Claiming…' : 'Claim food'}</button></div></article>)}</div>}
+      {loading ? <div className="rounded-2xl bg-white p-12 text-center text-slate-500">Finding nearby offers…</div> : locationStatus !== 'ready' ? <div className="rounded-2xl border border-dashed border-amber-200 bg-white p-12 text-center"><FaMapMarkerAlt className="mx-auto text-4xl text-amber-400" /><h3 className="mt-4 text-lg font-bold">Location is needed</h3><p className="mt-1 text-slate-500">Set a valid location in your profile, or allow browser location access, to see nearby food offers.</p></div> : filtered.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center"><FaBoxOpen className="mx-auto text-4xl text-amber-300" /><h3 className="mt-4 text-lg font-bold">No nearby offers right now</h3><p className="mt-1 text-slate-500">There are no active offers within 10 km. Try again soon.</p></div> : <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{filtered.map((item) => <article key={item._id} className="overflow-hidden rounded-2xl bg-white shadow-sm"><div className="h-48 bg-amber-50">{imageUrl(item) ? <img src={imageUrl(item)} alt={item.foodName} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-5xl text-amber-300"><FaBoxOpen /></div>}</div><div className="p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="text-xl font-bold">{item.foodName}</h3><p className="text-sm text-slate-500">{item.category}</p></div><span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">{item.quantity} left</span></div><p className="mt-3 min-h-10 text-sm text-slate-600">{item.description || 'Fresh surplus food available for pickup.'}</p><p className="mt-3 text-lg font-bold text-amber-700">₹{item.discountedPrice} <span className="text-sm font-normal text-slate-400 line-through">₹{item.originalPrice}</span></p><p className="mt-3 flex items-center gap-2 text-sm text-slate-500"><FaMapMarkerAlt className="text-amber-600" />{item.merchantId?.shopName || 'Local store'}, {item.merchantId?.city || 'Nearby'}</p><p className="mt-2 flex items-center gap-2 text-sm text-slate-500"><FaClock className="text-amber-600" />Pickup {formatIndianTime(item.pickupStart)} – {formatIndianTime(item.pickupEnd)} IST</p><PickupWindowCountdown listing={item} onExpired={() => removeExpiredListing(item._id)} /><button disabled={claimingId === item._id} onClick={() => claimFood(item)} className="mt-5 w-full rounded-xl bg-amber-600 py-3 font-semibold text-white hover:bg-amber-700 disabled:opacity-60">{claimingId === item._id ? 'Claiming…' : 'Claim food'}</button></div></article>)}</div>}
     </main></div>;
 };
 
