@@ -161,7 +161,7 @@ exports.createListing = async (req, res) => {
     // The consumer feed needs the merchant fields that are normally supplied
     // by getActiveListings, so populate them before broadcasting.
     const listingForConsumers = await Listing.findById(listing._id)
-      .populate('merchantId', 'shopName businessCategory shopAddress city');
+      .populate('merchantId', 'shopName businessCategory shopAddress city latitude longitude');
     if (listingForConsumers.status === 'active'
       && listingForConsumers.availableStatus
       && listingForConsumers.quantity > 0

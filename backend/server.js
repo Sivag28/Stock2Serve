@@ -74,6 +74,26 @@ mongoose
   .then(() => {
     console.log('Connected to MongoDB');
 
+    // Existing merchants predate the GeoJSON location field. Backfill it from
+    // their stored coordinates so they are included in the nearby feed too.
+    const User = require('./models/User');
+    User.updateMany(
+      {
+        role: 'merchant',
+        location: { $exists: false },
+        latitude: { $gte: -90, $lte: 90 },
+        longitude: { $gte: -180, $lte: 180 },
+      },
+      [{
+        $set: {
+          location: {
+            type: 'Point',
+            coordinates: ['$longitude', '$latitude'],
+          },
+        },
+      }],
+    ).catch((error) => console.error('Merchant location backfill failed:', error));
+
     // Claims expire even if the consumer leaves the My Claims page open.
     // Each affected consumer receives a private status update immediately.
     const expireClaims = async () => {

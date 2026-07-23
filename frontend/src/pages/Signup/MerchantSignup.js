@@ -548,8 +548,10 @@ const MerchantSignup = () => {
             type="text"
             name="latitude"
             value={formData.latitude}
-            readOnly
-            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
+            onChange={handleChange}
+            inputMode="decimal"
+            placeholder="e.g. 19.076090"
+            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-amber-400 focus:outline-none"
           />
         </div>
         <div>
@@ -558,8 +560,10 @@ const MerchantSignup = () => {
             type="text"
             name="longitude"
             value={formData.longitude}
-            readOnly
-            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
+            onChange={handleChange}
+            inputMode="decimal"
+            placeholder="e.g. 72.877426"
+            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-amber-400 focus:outline-none"
           />
         </div>
       </div>

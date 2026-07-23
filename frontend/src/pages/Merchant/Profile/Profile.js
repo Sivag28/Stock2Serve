@@ -121,8 +121,8 @@ const MerchantProfile = () => {
         (position) => {
           setProfileData(prev => ({
             ...prev,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+            latitude: position.coords.latitude.toFixed(6),
+            longitude: position.coords.longitude.toFixed(6),
           }));
         },
         (error) => {
@@ -536,9 +536,9 @@ const MerchantProfile = () => {
                           value={profileData.latitude}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5"
-                          placeholder="Auto"
-                          readOnly
+                          inputMode="decimal"
+                          className={`w-full rounded-lg border px-4 py-2.5 ${isEditing ? 'border-amber-300 bg-white' : 'border-slate-200 bg-slate-50'}`}
+                          placeholder="e.g. 19.076090"
                         />
                       </div>
                       <div>
@@ -551,9 +551,9 @@ const MerchantProfile = () => {
                           value={profileData.longitude}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5"
-                          placeholder="Auto"
-                          readOnly
+                          inputMode="decimal"
+                          className={`w-full rounded-lg border px-4 py-2.5 ${isEditing ? 'border-amber-300 bg-white' : 'border-slate-200 bg-slate-50'}`}
+                          placeholder="e.g. 72.877426"
                         />
                       </div>
                     </div>

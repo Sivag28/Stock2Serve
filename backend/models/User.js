@@ -64,6 +64,17 @@ const userSchema = new mongoose.Schema({
   longitude: {
     type: Number,
   },
+  // GeoJSON is used for efficient nearby-merchant searches. Coordinates must
+  // always be stored as [longitude, latitude] for MongoDB geospatial queries.
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+    },
+    coordinates: {
+      type: [Number],
+    },
+  },
   openingTime: {
     type: String,
   },
@@ -83,6 +94,20 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+});
+
+userSchema.index({ location: '2dsphere' }, { sparse: true });
+
+// Keep the new geospatial field in sync with the latitude/longitude fields
+// already used by merchant signup and profile editing.
+userSchema.pre('validate', function() {
+  const latitude = Number(this.latitude);
+  const longitude = Number(this.longitude);
+  if (Number.isFinite(latitude) && Number.isFinite(longitude)
+    && latitude >= -90 && latitude <= 90
+    && longitude >= -180 && longitude <= 180) {
+    this.location = { type: 'Point', coordinates: [longitude, latitude] };
+  }
 });
 
 userSchema.pre('save', async function() {
