@@ -57,7 +57,7 @@ exports.createClaim = async (req, res) => {
       .populate({
         path: 'listingId',
         select: 'foodName discountedPrice pickupStart pickupEnd merchantId',
-        populate: { path: 'merchantId', select: 'shopName' },
+        populate: { path: 'merchantId', select: 'shopName shopAddress city' },
       });
     req.app.get('io').to(`merchant:${listing.merchantId}`).emit('merchant-claim-created', { claim: historyClaim });
 

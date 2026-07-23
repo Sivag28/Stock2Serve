@@ -46,6 +46,7 @@ Your food reservation has been successfully confirmed. Please find your pickup d
 
 Reservation Details
 Merchant: ${merchant?.shopName || 'Stock2Serve merchant'}
+Shop Address: ${[merchant?.shopAddress, merchant?.city].filter(Boolean).join(', ') || 'Not available'}
 Food Item: ${listing.foodName}
 Quantity: ${quantity}
 Price per Item: ₹${pricePerItem}
@@ -71,6 +72,7 @@ Save Food. Save More.`,
 <h2>🍽️ Reservation Details</h2>
 <table style="border-collapse:collapse">
   <tr><td><strong>Merchant:</strong></td><td>${escapeHtml(merchant?.shopName || 'Stock2Serve merchant')}</td></tr>
+  <tr><td><strong>Shop Address:</strong></td><td>${escapeHtml([merchant?.shopAddress, merchant?.city].filter(Boolean).join(', ') || 'Not available')}</td></tr>
   <tr><td><strong>Food Item:</strong></td><td>${escapeHtml(listing.foodName)}</td></tr>
   <tr><td><strong>Quantity:</strong></td><td>${quantity}</td></tr>
   <tr><td><strong>Price per Item:</strong></td><td>₹${pricePerItem}</td></tr>
