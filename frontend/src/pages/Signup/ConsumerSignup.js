@@ -391,23 +391,27 @@ const ConsumerSignup = () => {
       {/* Latitude & Longitude */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Latitude <span className="text-gray-400 text-xs">(Auto)</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
           <input
             type="text"
             name="latitude"
             value={formData.latitude}
-            readOnly
-            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
+            onChange={handleChange}
+            inputMode="decimal"
+            placeholder="e.g. 9.192022"
+            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-amber-400 focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Longitude <span className="text-gray-400 text-xs">(Auto)</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
           <input
             type="text"
             name="longitude"
             value={formData.longitude}
-            readOnly
-            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
+            onChange={handleChange}
+            inputMode="decimal"
+            placeholder="e.g. 77.841698"
+            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-amber-400 focus:outline-none"
           />
         </div>
       </div>
