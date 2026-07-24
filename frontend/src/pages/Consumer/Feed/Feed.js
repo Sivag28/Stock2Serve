@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaBars, FaBoxOpen, FaClock, FaMapMarkerAlt, FaSearch, FaSignOutAlt, FaTimes } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { io } from 'socket.io-client';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../../context/AuthContext';
 import api, { API_URL } from '../../../services/api';
 import { formatIndianTime } from '../../../utils/formatDate';
@@ -16,6 +17,18 @@ const hasValidCoordinates = (user) => {
   const longitude = Number(user?.longitude);
   return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
     && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
+};
+
+const isWithinNearbyRadius = (consumer, merchant) => {
+  const latitude = Number(merchant?.latitude);
+  const longitude = Number(merchant?.longitude);
+  if (!consumer || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return false;
+  const toRadians = (value) => value * (Math.PI / 180);
+  const latitudeDelta = toRadians(latitude - consumer.latitude);
+  const longitudeDelta = toRadians(longitude - consumer.longitude);
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(toRadians(consumer.latitude)) * Math.cos(toRadians(latitude)) * Math.sin(longitudeDelta / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) <= 10000;
 };
 
 const ConsumerFeed = () => {
@@ -32,16 +45,27 @@ const ConsumerFeed = () => {
   const consumerLocation = useRef(null);
   const nav = [{ path: '/consumer/feed', label: 'Find food' }, { path: '/consumer/claims', label: 'My claims' }, { path: '/consumer/profile', label: 'Profile' }];
 
-  const fetchListings = useCallback(async (coordinates = consumerLocation.current) => {
+  const fetchListings = useCallback(async (coordinates = consumerLocation.current, { announceNewSinceLastVisit = true } = {}) => {
     if (!coordinates) return;
     setLoading(true);
     try {
       const response = await api.get('/listings', { params: coordinates });
-      setListings(response.data.listings || []);
+      const nearbyListings = response.data.listings || [];
+      const consumerId = user?._id || user?.id;
+      const seenKey = consumerId ? `stock2serve:last-feed-seen:${consumerId}` : null;
+      const lastSeenAt = seenKey ? Number(localStorage.getItem(seenKey) || 0) : 0;
+      const newlyAvailable = lastSeenAt
+        ? nearbyListings.filter((listing) => new Date(listing.createdAt).getTime() > lastSeenAt)
+        : [];
+      setListings(nearbyListings);
+      if (announceNewSinceLastVisit && newlyAvailable.length) {
+        toast.success(newlyAvailable.length === 1 ? 'New food available near you!' : `${newlyAvailable.length} new food offers are available near you!`);
+      }
+      if (seenKey) localStorage.setItem(seenKey, String(Date.now()));
     }
     catch (error) { Swal.fire({ icon: 'error', title: 'Unable to load offers', text: error.response?.data?.message || 'Please refresh and try again.', confirmButtonColor: '#d97706' }); }
     finally { setLoading(false); }
-  }, []);
+  }, [user?._id, user?.id]);
 
   useEffect(() => {
     // A consumer's saved profile location is the chosen delivery/search area.
@@ -82,7 +106,19 @@ const ConsumerFeed = () => {
     });
     // Broadcasts go to every consumer. Re-querying keeps the 10 km rule as
     // the source of truth rather than appending a potentially distant offer.
-    const handleListingCreated = () => fetchListings();
+    const handleListingCreated = (listing) => {
+      fetchListings(undefined, { announceNewSinceLastVisit: false });
+      if (isWithinNearbyRadius(consumerLocation.current, listing?.merchantId)) {
+        toast.success('New food available near you!');
+      }
+    };
+
+    const handleListingUpdated = (listing) => {
+      fetchListings(undefined, { announceNewSinceLastVisit: false });
+      if (isWithinNearbyRadius(consumerLocation.current, listing?.merchantId)) {
+        toast.success('A nearby food offer was updated!');
+      }
+    };
 
     const handleListingQuantityUpdated = ({ listingId, quantity }) => {
       setListings((currentListings) => {
@@ -95,9 +131,11 @@ const ConsumerFeed = () => {
     };
 
     socket.on('listing-created', handleListingCreated);
+    socket.on('listing-updated', handleListingUpdated);
     socket.on('listing-quantity-updated', handleListingQuantityUpdated);
     return () => {
       socket.off('listing-created', handleListingCreated);
+      socket.off('listing-updated', handleListingUpdated);
       socket.off('listing-quantity-updated', handleListingQuantityUpdated);
       socket.disconnect();
     };
@@ -130,7 +168,9 @@ const ConsumerFeed = () => {
     setExpiredListingIds((current) => new Set([...current, listingId]));
   };
   const filtered = useMemo(() => listings.filter((item) => !expiredListingIds.has(item._id) && [item.foodName, item.description, item.category, item.merchantId?.shopName, item.merchantId?.city].filter(Boolean).some((value) => value.toLowerCase().includes(search.toLowerCase()))), [expiredListingIds, listings, search]);
-  const leave = () => { logout(); navigate('/login'); };
+  const leave = async () => {
+    if (await logout()) navigate('/login');
+  };
 
   return <div className="min-h-screen bg-stone-50">
     <nav className="border-b bg-white shadow-sm"><div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6"><div className="flex items-center gap-3"><button className="text-xl text-slate-600 md:hidden" onClick={() => setMenuOpen((value) => !value)}>{menuOpen ? <FaTimes /> : <FaBars />}</button><div><h1 className="text-xl font-bold">STOCK2<span className="text-amber-600">SERVE</span></h1><p className="hidden text-xs text-slate-500 md:block">Hello, {user?.fullName}</p></div></div><div className="hidden items-center gap-2 md:flex">{nav.map((item) => <Link key={item.path} to={item.path} className={`rounded-lg px-4 py-2 text-sm font-medium ${location.pathname === item.path ? 'bg-amber-100 text-amber-700' : 'text-slate-600 hover:bg-slate-100'}`}>{item.label}</Link>)}<button onClick={leave} className="ml-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"><FaSignOutAlt className="mr-2 inline" />Logout</button></div><button onClick={leave} className="rounded-lg bg-red-500 px-3 py-2 text-white md:hidden"><FaSignOutAlt /></button></div>{menuOpen && <div className="border-t px-4 py-2 md:hidden">{nav.map((item) => <Link key={item.path} to={item.path} className="block rounded-lg px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>{item.label}</Link>)}</div>}</nav>

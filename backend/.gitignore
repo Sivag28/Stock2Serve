@@ -3,6 +3,7 @@
 
 # Environment Variables
 .env
+.env.example
 
 # Logs
 logs
@@ -28,3 +29,6 @@ Thumbs.db
 
 # Coverage
 coverage/
+
+# Firebase Admin key
+firebase-service-account.json

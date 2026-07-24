@@ -12,6 +12,8 @@ router.post(
 );
 router.post('/login', authController.login);
 router.get('/me', authMiddleware, authController.getMe);
+router.put('/fcm-token', authMiddleware, authController.registerFcmToken);
+router.delete('/fcm-token', authMiddleware, authController.removeFcmToken);
 router.put(
   '/consumer/profile',
   authMiddleware,

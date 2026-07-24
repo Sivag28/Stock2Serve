@@ -26,9 +26,8 @@ const MerchantDashboard = () => {
       .catch((error) => console.error('Unable to load merchant dashboard:', error));
   }, []);
 
-  const logoutAndLeave = () => {
-    logout();
-    navigate('/login');
+  const logoutAndLeave = async () => {
+    if (await logout()) navigate('/login');
   };
 
   return (

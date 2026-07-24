@@ -68,6 +68,9 @@ exports.register = async (req, res) => {
 
     // Generate token
     const token = generateJWT(user._id, user.role);
+    const userObj = user.toObject();
+    delete userObj.password;
+    delete userObj.fcmTokens;
 
     res.status(201).json({
       success: true,
@@ -79,8 +82,9 @@ exports.register = async (req, res) => {
         email: user.email,
         role: user.role,
         profilePhoto: user.profilePhoto,
-        // Include all user fields for frontend
-        ...user.toObject(),
+        // Include the profile fields needed by the frontend, but never return
+        // browser FCM registration tokens.
+        ...userObj,
       },
     });
   } catch (error) {
@@ -108,6 +112,7 @@ exports.login = async (req, res) => {
     // Remove password from response
     const userObj = user.toObject();
     delete userObj.password;
+    delete userObj.fcmTokens;
 
     res.json({
       success: true,
@@ -124,7 +129,7 @@ exports.login = async (req, res) => {
 // Get current user
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-password');
+    const user = await User.findById(req.userId).select('-password -fcmTokens');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -194,6 +199,7 @@ exports.updateConsumerProfile = async (req, res) => {
     // Return updated user without password
     const updatedUser = user.toObject();
     delete updatedUser.password;
+    delete updatedUser.fcmTokens;
 
     res.json({
       success: true,
@@ -202,5 +208,33 @@ exports.updateConsumerProfile = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// FCM tokens belong to the authenticated browser/device, not to a request
+// body user id. Only consumers receive consumer offer and pickup alerts.
+exports.registerFcmToken = async (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    if (!token) return res.status(400).json({ success: false, message: 'An FCM token is required.' });
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    if (user.role !== 'consumer') return res.status(403).json({ success: false, message: 'Only consumers can enable these notifications.' });
+
+    await User.updateOne({ _id: user._id }, { $addToSet: { fcmTokens: token } });
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.removeFcmToken = async (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    if (token) await User.updateOne({ _id: req.userId }, { $pull: { fcmTokens: token } });
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

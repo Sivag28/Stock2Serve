@@ -1,13 +1,22 @@
 // frontend/src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../services/api';
+import { getPushNotificationToken } from '../services/firebase';
+import Swal from 'sweetalert2';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  // A full app start is intentionally a fresh session. This prevents browser
+  // tab/session restoration from reopening yesterday's protected route.
+  const [token, setToken] = useState(() => {
+    localStorage.removeItem('token');
+    return null;
+  });
+  const userRole = user?.role;
+  const userId = user?._id || user?.id;
 
   useEffect(() => {
     if (token) {
@@ -17,6 +26,16 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, [token]);
+
+  useEffect(() => {
+    if (userRole !== 'consumer') return;
+
+    // FCM is registered once a consumer signs in. It is intentionally only a
+    // background channel; foreground UI continues to use Socket.IO.
+    getPushNotificationToken()
+      .then((fcmToken) => fcmToken && api.put('/auth/fcm-token', { token: fcmToken }))
+      .catch((error) => console.warn('Push notifications are unavailable:', error.message));
+  }, [userId, userRole]);
 
   const fetchUser = async () => {
     try {
@@ -65,11 +84,32 @@ export const AuthProvider = ({ children }) => {
     return user;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const confirmation = await Swal.fire({
+      icon: 'question',
+      title: 'Log out?',
+      text: 'You will need to sign in again to access your account.',
+      showCancelButton: true,
+      confirmButtonText: 'Log out',
+      cancelButtonText: 'Stay signed in',
+      confirmButtonColor: '#dc2626',
+    });
+    if (!confirmation.isConfirmed) return false;
+
+    const fcmToken = localStorage.getItem('fcmToken');
+    if (fcmToken) api.delete('/auth/fcm-token', { data: { token: fcmToken } }).catch(() => {});
     localStorage.removeItem('token');
+    localStorage.removeItem('fcmToken');
     setToken(null);
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
+    await Swal.fire({
+      icon: 'success',
+      title: 'Logged out',
+      timer: 1000,
+      showConfirmButton: false,
+    });
+    return true;
   };
 
   const updateUser = (updatedUser) => {

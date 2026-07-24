@@ -6,6 +6,8 @@
 
 # Ignore environment files
 **/.env
+**/.env.example
+**/firebase-service-account.json
 
 # Ignore logs
 *.log

@@ -10,6 +10,9 @@ const claimSchema = new mongoose.Schema({
   pickupWindowStart: { type: Date, default: null },
   pickupWindowEnd: { type: Date, default: null },
   tokenExpiresAt: { type: Date, default: null },
+  // Prevent the scheduled job from sending the same 30-minute reminder more
+  // than once, including after a server restart.
+  pickupReminderSentAt: { type: Date, default: null },
   emailStatus: { type: String, enum: ['pending', 'sent', 'skipped', 'failed'], default: 'pending' },
   emailSentAt: { type: Date, default: null },
   emailError: { type: String, default: null },

@@ -4,6 +4,7 @@ const Listing = require('../models/Listing');
 const Claim = require('../models/Claim');
 const path = require('path');
 const fs = require('fs');
+const { notifyNearbyConsumersAboutListing } = require('../utils/notifications');
 
 const parseIndianExpiryTime = ({ calendar, tokenexpiryTime, expiryTime }) => {
   const hasCalendarDate = /^\d{4}-\d{2}-\d{2}$/.test(String(calendar || ''));
@@ -167,6 +168,10 @@ exports.createListing = async (req, res) => {
       && listingForConsumers.quantity > 0
       && listingForConsumers.expiryTime > new Date()) {
       req.app.get('io').emit('listing-created', listingForConsumers);
+      // Socket.IO remains the foreground channel. FCM is only sent to nearby
+      // consumers who do not currently have a live authenticated socket.
+      notifyNearbyConsumersAboutListing(req.app.get('io'), listingForConsumers)
+        .catch((error) => console.error('New listing FCM notification failed:', error));
     }
 
     res.status(201).json({ success: true, message: 'Listing created successfully', listing });
@@ -241,6 +246,22 @@ exports.updateListing = async (req, res) => {
     }
 
     await listing.save();
+    const listingForConsumers = await Listing.findById(listing._id)
+      .populate('merchantId', 'shopName businessCategory shopAddress city latitude longitude');
+
+    // Edits and re-activations are meaningful changes for nearby consumers.
+    // Socket.IO remains the visible-app channel and FCM covers background apps.
+    if (listingForConsumers.status === 'active'
+      && listingForConsumers.availableStatus
+      && listingForConsumers.quantity > 0
+      && listingForConsumers.expiryTime > new Date()) {
+      req.app.get('io').emit('listing-updated', listingForConsumers);
+      notifyNearbyConsumersAboutListing(req.app.get('io'), listingForConsumers, {
+        title: 'Nearby Food Offer Updated',
+        body: 'A nearby merchant has updated a surplus food offer. Go and view nearby offers.',
+        type: 'listing-updated',
+      }).catch((error) => console.error('Listing update FCM notification failed:', error));
+    }
     res.json({ success: true, message: 'Listing updated successfully', listing });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

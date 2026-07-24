@@ -8,6 +8,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const { timingForClaim, isExpired } = require('./utils/claimTiming');
+const { notifyPickupReminder } = require('./utils/notifications');
 
 dotenv.config();
 
@@ -24,6 +25,12 @@ const io = new Server(server, {
 app.set('io', io);
 
 io.on('connection', (socket) => {
+  // A connected browser can be hidden in the background. The client updates
+  // this flag on visibility changes so FCM is still used for hidden tabs.
+  socket.data.isForeground = socket.handshake.auth?.foreground === true;
+  socket.on('app-visibility', ({ foreground } = {}) => {
+    socket.data.isForeground = foreground === true;
+  });
   console.log(`Realtime client connected: ${socket.id}`);
   socket.on('disconnect', () => console.log(`Realtime client disconnected: ${socket.id}`));
 });
@@ -74,12 +81,12 @@ mongoose
   .then(() => {
     console.log('Connected to MongoDB');
 
-    // Existing merchants predate the GeoJSON location field. Backfill it from
-    // their stored coordinates so they are included in the nearby feed too.
+    // Existing accounts predate the GeoJSON location field. Backfill it from
+    // their stored coordinates so both nearby listings and nearby FCM alerts
+    // use the same 10 km location rule.
     const User = require('./models/User');
     User.updateMany(
       {
-        role: 'merchant',
         location: { $exists: false },
         latitude: { $gte: -90, $lte: 90 },
         longitude: { $gte: -180, $lte: 180 },
@@ -117,8 +124,28 @@ mongoose
         }
       }));
     };
+
+    const sendPickupReminders = async () => {
+      const Claim = require('./models/Claim');
+      const now = new Date();
+      const thirtyMinutesFromNow = new Date(now.getTime() + (30 * 60 * 1000));
+      const candidates = await Claim.find({
+        status: 'claimed',
+        pickupReminderSentAt: null,
+        tokenExpiresAt: { $gt: now, $lte: thirtyMinutesFromNow },
+      }).select('_id consumerId');
+
+      await Promise.all(candidates.map(async (claim) => {
+        if (await notifyPickupReminder(io, claim)) {
+          claim.pickupReminderSentAt = new Date();
+          await claim.save();
+        }
+      }));
+    };
     expireClaims().catch((error) => console.error('Claim expiry check failed:', error));
+    sendPickupReminders().catch((error) => console.error('Pickup reminder check failed:', error));
     setInterval(() => expireClaims().catch((error) => console.error('Claim expiry check failed:', error)), 30 * 1000);
+    setInterval(() => sendPickupReminders().catch((error) => console.error('Pickup reminder check failed:', error)), 30 * 1000);
   })
   .catch((err) => console.error('MongoDB connection error:', err));
 

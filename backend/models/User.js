@@ -90,6 +90,13 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  // One consumer can allow notifications on more than one browser/device.
+  // FCM registration tokens are not secrets, but they are kept server-side so
+  // notification targeting never exposes another consumer's token.
+  fcmTokens: {
+    type: [String],
+    default: [],
+  },
   createdAt: {
     type: Date,
     default: Date.now,
