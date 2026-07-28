@@ -1,0 +1,12 @@
+/* Desktop detail panel: centred, compact and easy to scan. */
+@media (min-width:701px){
+  .nearby-sheet{bottom:auto;top:50%;transform:translate(-50%,-50%);width:min(590px,calc(100% - 40px));border-radius:26px;padding:13px 26px 26px;animation:nearby-modal-in .25s ease-out}
+  .nearby-handle{margin-bottom:19px}
+}
+@keyframes nearby-modal-in{from{opacity:0;transform:translate(-50%,-46%) scale(.97)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.nearby-sheet{border:1px solid rgba(255,255,255,.92);background:linear-gradient(145deg,#fff 0%,#f9fffb 100%)}
+.nearby-sheet-head{padding-bottom:14px;border-bottom:1px solid #e8f0eb}.nearby-sheet h2{font-size:18px;letter-spacing:-.02em}.nearby-logo{box-shadow:0 7px 16px rgba(22,163,74,.2)}
+.nearby-meals{background:linear-gradient(110deg,#ecfdf3,#f5f8f6);border:1px solid #e3f4e8;padding:15px}.nearby-meals strong{font-size:17px}.nearby-sheet-grid span{background:#f5f8f6;border:1px solid #edf1ee;padding:12px}.nearby-view-button{box-shadow:0 9px 20px rgba(22,163,74,.28);transition:transform .18s,box-shadow .18s}.nearby-view-button:hover{transform:translateY(-1px);box-shadow:0 12px 24px rgba(22,163,74,.35)}
+.nearby-list{top:111px;padding:22px max(7vw,24px);background:linear-gradient(180deg,rgba(246,248,247,.96),#f4f8f5);display:grid;align-content:start;grid-template-columns:repeat(auto-fit,minmax(285px,370px));gap:14px;overflow:auto}.nearby-list button{margin:0;padding:15px;border:1px solid #e4ece6;border-radius:18px;box-shadow:0 4px 15px rgba(15,23,42,.06);transition:transform .18s,box-shadow .18s}.nearby-list button:hover{transform:translateY(-3px);box-shadow:0 12px 25px rgba(15,23,42,.12)}.nearby-list-icon{height:48px;width:48px;border-radius:15px;font-size:19px}.nearby-list b{font-size:14px}.nearby-list small{font-size:12px;line-height:1.5}.nearby-list em{background:#ecfdf3;color:#16803c;font-weight:700;padding:6px 8px;border-radius:9px;white-space:nowrap}.nearby-list>p{grid-column:1/-1;text-align:center;color:#64748b;padding:45px}
+.nearby-filters{border-color:#e1eee4;box-shadow:0 18px 45px rgba(15,23,42,.18)}.nearby-legend{border:1px solid rgba(255,255,255,.8)}
+@media(max-width:700px){.nearby-list{padding:14px;display:block}.nearby-list button{margin-bottom:10px}.nearby-sheet{max-height:78vh;overflow:auto}}

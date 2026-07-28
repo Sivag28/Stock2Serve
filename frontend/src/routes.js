@@ -14,6 +14,7 @@ import MerchantListings from './pages/Merchant/Listings/Listings';
 import ConsumerFeed from './pages/Consumer/Feed/Feed';
 import ConsumerMyClaims from './pages/Consumer/MyClaims/MyClaims';
 import ConsumerProfile from './pages/Consumer/Profile/Profile';
+import NearbyMap from './pages/Consumer/NearbyMap/NearbyMap';
 
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
@@ -85,6 +86,10 @@ const AppRoutes = () => {
             <ConsumerFeed />
           </ProtectedRoute>
         }
+      />
+      <Route
+        path="/consumer/map"
+        element={<ProtectedRoute role="consumer"><NearbyMap /></ProtectedRoute>}
       />
 
       <Route

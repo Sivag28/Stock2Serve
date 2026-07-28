@@ -48,6 +48,70 @@ exports.getActiveListings = async (req, res) => {
   }
 };
 
+// A map marker represents a merchant, rather than an individual food item.
+// Keep this query beside the feed query so both surfaces apply exactly the
+// same active/available/nearby rules against MongoDB.
+exports.getNearbyMerchants = async (req, res) => {
+  try {
+    const { latitude, longitude } = req.query;
+    if (!validCoordinate(latitude, -90, 90) || !validCoordinate(longitude, -180, 180)) {
+      return res.status(400).json({ success: false, message: 'A valid latitude and longitude are required.' });
+    }
+
+    const nearbyMerchants = await User.find({
+      role: 'merchant',
+      location: {
+        $near: {
+          $geometry: { type: 'Point', coordinates: [Number(longitude), Number(latitude)] },
+          $maxDistance: NEARBY_RADIUS_METERS,
+        },
+      },
+    }).select('shopName businessCategory shopAddress city latitude longitude profilePhoto openingTime closingTime');
+
+    const merchantIds = nearbyMerchants.map((merchant) => merchant._id);
+    const listings = await Listing.find({
+      merchantId: { $in: merchantIds }, status: 'active', availableStatus: true,
+      quantity: { $gt: 0 }, expiryTime: { $gt: new Date() },
+    }).select('merchantId quantity foodType pickupStart pickupEnd expiryTime');
+
+    const byMerchant = new Map();
+    listings.forEach((listing) => {
+      const key = String(listing.merchantId);
+      const current = byMerchant.get(key) || { totalMeals: 0, foodTypes: new Set(), pickupStarts: [], pickupEnds: [], nextExpiry: null };
+      current.totalMeals += listing.quantity;
+      current.foodTypes.add(listing.foodType);
+      current.pickupStarts.push(listing.pickupStart);
+      current.pickupEnds.push(listing.pickupEnd);
+      if (!current.nextExpiry || listing.expiryTime < current.nextExpiry) current.nextExpiry = listing.expiryTime;
+      byMerchant.set(key, current);
+    });
+
+    const merchants = nearbyMerchants.map((merchant) => {
+      const availability = byMerchant.get(String(merchant._id));
+      if (!availability) return null;
+      return {
+        _id: merchant._id,
+        name: merchant.shopName || 'Local merchant',
+        category: merchant.businessCategory || 'other',
+        address: merchant.shopAddress || merchant.city || '',
+        latitude: merchant.latitude,
+        longitude: merchant.longitude,
+        profilePhoto: merchant.profilePhoto,
+        openingTime: merchant.openingTime,
+        closingTime: merchant.closingTime,
+        totalMeals: availability.totalMeals,
+        foodTypes: [...availability.foodTypes],
+        pickupStart: availability.pickupStarts.sort()[0],
+        pickupEnd: availability.pickupEnds.sort().slice(-1)[0],
+        nextExpiry: availability.nextExpiry,
+      };
+    }).filter(Boolean);
+    res.json({ success: true, merchants });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 exports.getTrendingListings = async (req, res) => {
   try {
     const { latitude, longitude } = req.query;

@@ -44,7 +44,7 @@ const ConsumerFeed = () => {
   const [expiredListingIds, setExpiredListingIds] = useState(() => new Set());
   const [locationStatus, setLocationStatus] = useState('requesting');
   const consumerLocation = useRef(null);
-  const nav = [{ path: '/consumer/feed', label: 'Find food' }, { path: '/consumer/claims', label: 'My claims' }, { path: '/consumer/profile', label: 'Profile' }];
+  const nav = [{ path: '/consumer/feed', label: 'Find food' }, { path: '/consumer/map', label: 'Nearby map' }, { path: '/consumer/claims', label: 'My claims' }, { path: '/consumer/profile', label: 'Profile' }];
 
   const fetchTrending = useCallback(async (coordinates = consumerLocation.current) => {
     if (!coordinates) return;
