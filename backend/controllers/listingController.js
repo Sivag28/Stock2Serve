@@ -48,6 +48,64 @@ exports.getActiveListings = async (req, res) => {
   }
 };
 
+exports.getTrendingListings = async (req, res) => {
+  try {
+    const { latitude, longitude } = req.query;
+    if (!validCoordinate(latitude, -90, 90) || !validCoordinate(longitude, -180, 180)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid latitude and longitude are required to find trending offers.',
+      });
+    }
+
+    const nearbyMerchants = await User.find({
+      role: 'merchant',
+      location: {
+        $near: {
+          $geometry: { type: 'Point', coordinates: [Number(longitude), Number(latitude)] },
+          $maxDistance: NEARBY_RADIUS_METERS,
+        },
+      },
+    }).select('_id');
+
+    const tenMinutesAgo = new Date(Date.now() - (10 * 60 * 1000));
+    const merchantIds = nearbyMerchants.map((merchant) => merchant._id);
+    const trending = await require('../models/Claim').aggregate([
+      { $match: { createdAt: { $gte: tenMinutesAgo } } },
+      { $lookup: { from: 'listings', localField: 'listingId', foreignField: '_id', as: 'listing' } },
+      { $unwind: '$listing' },
+      {
+        $match: {
+          'listing.merchantId': { $in: merchantIds },
+          'listing.status': 'active',
+          'listing.availableStatus': true,
+          'listing.quantity': { $gt: 0 },
+          'listing.expiryTime': { $gt: new Date() },
+        },
+      },
+      { $lookup: { from: 'users', localField: 'listing.merchantId', foreignField: '_id', as: 'merchant' } },
+      { $unwind: '$merchant' },
+      {
+        $group: {
+          _id: '$listing._id',
+          foodName: { $first: '$listing.foodName' },
+          shopName: { $first: '$merchant.shopName' },
+          shopAddress: { $first: '$merchant.shopAddress' },
+          city: { $first: '$merchant.city' },
+          claimCount: { $sum: 1 },
+        },
+      },
+      { $sort: { claimCount: -1, foodName: 1 } },
+      { $limit: 3 },
+      { $project: { _id: 1, foodName: 1, shopName: 1, shopAddress: 1, city: 1, claimCount: 1 } },
+    ]);
+
+    res.json({ success: true, trending });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Listing image files are stored in MongoDB as well as the local uploads
 // folder. Serving through this endpoint makes them available from every app
 // server that uses the same database.
