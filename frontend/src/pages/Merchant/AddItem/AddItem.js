@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { FaPlus, FaArrowLeft, FaUpload } from 'react-icons/fa';
+import { FaBars, FaBoxOpen, FaClipboardList, FaHistory, FaHome, FaPlus, FaSignOutAlt, FaTimes, FaUpload, FaUser } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import api from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
@@ -44,6 +44,8 @@ const businessCategories = [
   { value: 'other', label: 'Other' },
 ];
 
+const navItems = [{ path: '/merchant/dashboard', label: 'Dashboard', icon: <FaHome /> }, { path: '/merchant/add-item', label: 'Add Item', icon: <FaPlus /> }, { path: '/merchant/inventory', label: 'Inventory', icon: <FaBoxOpen /> }, { path: '/merchant/verify-pickup', label: 'Verify pickup', icon: <FaClipboardList /> }, { path: '/merchant/history', label: 'History', icon: <FaHistory /> }, { path: '/merchant/profile', label: 'Profile', icon: <FaUser /> }];
+
 const IndianTimePicker = ({ name, value, onChange }) => {
   const parts = getIndianTimeParts(value);
   const update = (key, nextValue) => onChange({ target: { name, value: toIndianStoredTime(key === 'hour' ? nextValue : parts.hour, key === 'minute' ? nextValue : parts.minute, key === 'meridiem' ? nextValue : parts.meridiem) } });
@@ -55,7 +57,7 @@ const IndianTimePicker = ({ name, value, onChange }) => {
 };
 
 const MerchantAddItem = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { listingId } = useParams();
@@ -64,6 +66,7 @@ const MerchantAddItem = () => {
   const [form, setForm] = useState(() => ({ ...initialForm, category: user?.businessCategory || '' }));
   const [image, setImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const loadListing = async () => {
@@ -157,25 +160,16 @@ const MerchantAddItem = () => {
     }
   };
 
+  const logoutAndLeave = async () => {
+    if (await logout()) navigate('/login');
+  };
+
   return (
     <div className="app-shell min-h-screen bg-stone-50">
-      <nav className="border-b bg-white shadow-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
-          <div>
-            <h1 className="text-xl font-bold md:text-2xl">
-              STOCK2<span className="text-amber-600">SERVE</span>
-            </h1>
-            <p className="hidden text-xs text-slate-500 md:block">Merchant • {user?.fullName}</p>
-          </div>
-          <Link to="/merchant/dashboard" className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            <FaArrowLeft />
-            Back to Dashboard
-          </Link>
-        </div>
-      </nav>
+      <nav className="border-b bg-white shadow-sm"><div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 md:px-6"><div className="flex items-center gap-4"><button className="text-2xl text-slate-600 md:hidden" onClick={() => setMobileMenuOpen((open) => !open)}>{mobileMenuOpen ? <FaTimes /> : <FaBars />}</button><div><h1 className="text-xl font-bold md:text-2xl">STOCK2<span className="text-amber-600">SERVE</span></h1><p className="hidden text-xs text-slate-500 md:block">Welcome, {user?.fullName}</p></div></div><div className="hidden items-center gap-2 md:flex">{navItems.map((item) => <Link key={item.path} to={item.path} className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${location.pathname === item.path ? 'bg-amber-100 text-amber-700' : 'text-slate-600 hover:bg-slate-100'}`}>{item.icon}{item.label}</Link>)}<button onClick={logoutAndLeave} className="ml-2 flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"><FaSignOutAlt /> Logout</button></div><button onClick={logoutAndLeave} className="rounded-lg bg-red-500 px-3 py-2 text-white md:hidden"><FaSignOutAlt /></button></div>{mobileMenuOpen && <div className="border-t bg-white px-4 py-2 md:hidden">{navItems.map((item) => <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50">{item.icon}{item.label}</Link>)}</div>}</nav>
 
-      <main className="mx-auto max-w-4xl p-4 md:p-6">
-        <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm">
+      <main className="mx-auto max-w-[1400px] p-4 pb-10 md:p-6 md:pb-12">
+        <div className="mb-6 rounded-3xl border border-amber-900/25 bg-white p-6 shadow-xl shadow-slate-900/[0.05]">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-amber-100 p-3 text-amber-700">
               <FaPlus />
@@ -188,9 +182,9 @@ const MerchantAddItem = () => {
         </div>
 
         {loadingListing ? (
-          <div className="rounded-2xl bg-white p-10 text-center text-slate-500 shadow-sm">Loading listing...</div>
+          <div className="rounded-2xl border border-amber-900/25 bg-white p-10 text-center text-slate-500 shadow-sm">Loading listing...</div>
         ) : (
-        <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl bg-white p-6 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-6 rounded-3xl border border-amber-900/45 bg-white p-6 shadow-xl shadow-slate-900/[0.05] md:p-8">
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
               <span className="mb-2 block text-sm font-semibold text-slate-700">Food Name</span>
@@ -262,7 +256,7 @@ const MerchantAddItem = () => {
             </label>
           </div>
 
-          <label className="block rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+          <label className="block rounded-2xl border border-dashed border-amber-900/35 bg-amber-50/30 p-4">
             <span className="mb-2 block text-sm font-semibold text-slate-700">Food Image</span>
             <div className="flex items-center gap-3 text-slate-600">
               <FaUpload />
