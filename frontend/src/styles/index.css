@@ -38,6 +38,11 @@
     mask-image: linear-gradient(to bottom, black, transparent 75%);
   }
 
+  /* Slightly stronger grid texture on the consumer Find Food screen. */
+  .app-shell.find-food-shell::before {
+    opacity: 0.52;
+  }
+
   .app-shell > nav {
     position: relative;
     z-index: 10;
