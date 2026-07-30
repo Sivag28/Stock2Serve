@@ -47,23 +47,21 @@ function CurrentLocationCamera({ position, requestId }) {
 }
 
 const NearbyMap = () => {
-  const { user, logout } = useAuth(); const navigate = useNavigate(); const routeLocation = useLocation();
+  const { logout, consumerLocation, refreshConsumerLocation } = useAuth(); const navigate = useNavigate(); const routeLocation = useLocation();
   const [position, setPosition] = useState(null); const [merchants, setMerchants] = useState([]); const [loading, setLoading] = useState(true); const [selected, setSelected] = useState(null); const [search, setSearch] = useState(''); const [filtersOpen, setFiltersOpen] = useState(false); const [listMode, setListMode] = useState(false); const [menuOpen, setMenuOpen] = useState(false); const [maxDistance, setMaxDistance] = useState(10); const [category, setCategory] = useState('all'); const [foodType, setFoodType] = useState('all'); const [openNow, setOpenNow] = useState(false); const [mapVersion, setMapVersion] = useState(0); const [locationRequest, setLocationRequest] = useState(0); const newMerchantIds = useRef(new Set()); const merchantIds = useRef(new Set());
   const nav = [{ path: '/consumer/feed', label: 'Find food' }, { path: '/consumer/map', label: 'Nearby map' }, { path: '/consumer/claims', label: 'My claims' }, { path: '/consumer/profile', label: 'Profile' }];
   const fetchMerchants = useCallback(async (coordinates) => { if (!coordinates) return; try { const response = await api.get('/listings/merchants', { params: coordinates }); const next = response.data.merchants || []; merchantIds.current = new Set(next.map((merchant) => String(merchant._id))); setMerchants(next); } finally { setLoading(false); } }, []);
 
-  useEffect(() => { let cancelled = false; const fallback = Number.isFinite(Number(user?.latitude)) && Number.isFinite(Number(user?.longitude)) ? { latitude: Number(user.latitude), longitude: Number(user.longitude) } : null; const applyLocation = (next) => { if (cancelled) return; setPosition(next); fetchMerchants(next); }; if (!navigator.geolocation) applyLocation(fallback); else navigator.geolocation.getCurrentPosition(({ coords }) => applyLocation({ latitude: coords.latitude, longitude: coords.longitude }), () => applyLocation(fallback), { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }); return () => { cancelled = true; }; }, [fetchMerchants, user]);
+  useEffect(() => { refreshConsumerLocation(); }, [refreshConsumerLocation]);
+  useEffect(() => { if (!consumerLocation) return; setPosition(consumerLocation); fetchMerchants(consumerLocation); }, [consumerLocation, fetchMerchants]);
   useEffect(() => { if (!position) return undefined; const socket = io(API_URL, { auth: { token: localStorage.getItem('token') }, transports: ['websocket', 'polling'] }); const refresh = (listing) => { const merchantId = String(listing?.merchantId?._id || listing?.merchantId || ''); if (merchantId && !merchantIds.current.has(merchantId)) newMerchantIds.current.add(merchantId); fetchMerchants(position); }; socket.on('listing-created', refresh); socket.on('listing-updated', refresh); socket.on('listing-quantity-updated', () => fetchMerchants(position)); return () => { socket.disconnect(); }; }, [fetchMerchants, position]);
   useEffect(() => { const timer = setInterval(() => setMapVersion((version) => version + 1), 60000); return () => clearInterval(timer); }, []);
 
   const visible = useMemo(() => merchants.map((merchant) => ({ ...merchant, refreshedAt: mapVersion, distance: haversine(position, merchant), markerStatus: (() => { const minutes = (new Date(merchant.nextExpiry).getTime() - Date.now()) / 60000; return minutes <= 10 ? 'urgent' : merchant.totalMeals <= 8 ? 'limited' : 'plenty'; })() })).filter((merchant) => merchant.distance <= maxDistance && (category === 'all' || merchant.category === category) && (foodType === 'all' || merchant.foodTypes.includes(foodType)) && (!openNow || merchant.openingTime)).filter((merchant) => `${merchant.name} ${merchant.category}`.toLowerCase().includes(search.toLowerCase())).sort((a, b) => a.distance - b.distance), [merchants, position, maxDistance, category, foodType, openNow, search, mapVersion]);
   const locationNow = () => {
-    // Centre immediately on the displayed location, then refine it with GPS.
-    // This makes both location buttons useful even if the browser delays or
-    // declines a new geolocation request.
     setLocationRequest((request) => request + 1);
-    navigator.geolocation?.getCurrentPosition(({ coords }) => {
-      const next = { latitude: coords.latitude, longitude: coords.longitude };
+    refreshConsumerLocation().then((next) => {
+      if (!next) return;
       setPosition(next);
       setLocationRequest((request) => request + 1);
       fetchMerchants(next);

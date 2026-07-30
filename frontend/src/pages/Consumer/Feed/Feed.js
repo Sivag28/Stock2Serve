@@ -12,13 +12,6 @@ import PickupWindowCountdown from '../../../components/PickupWindowCountdown';
 
 const imageUrl = (listing) => listing.image ? `${API_URL}/api/listings/${listing._id}/image` : null;
 
-const hasValidCoordinates = (user) => {
-  const latitude = Number(user?.latitude);
-  const longitude = Number(user?.longitude);
-  return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
-    && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
-};
-
 const isWithinNearbyRadius = (consumer, merchant) => {
   const latitude = Number(merchant?.latitude);
   const longitude = Number(merchant?.longitude);
@@ -32,7 +25,7 @@ const isWithinNearbyRadius = (consumer, merchant) => {
 };
 
 const ConsumerFeed = () => {
-  const { user, loading: authLoading, logout } = useAuth();
+  const { user, loading: authLoading, logout, consumerLocation: sharedConsumerLocation, refreshConsumerLocation } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [listings, setListings] = useState([]);
@@ -80,38 +73,25 @@ const ConsumerFeed = () => {
     finally { setLoading(false); }
   }, [fetchTrending, user?._id, user?.id]);
 
+  // The provider updates this value when the device location changes, so the
+  // feed follows the same GPS/fallback location as the Nearby Map.
   useEffect(() => {
-    // A consumer's saved profile location is the chosen delivery/search area.
-    // Do not replace it with the device GPS location, which can belong to a
-    // different person or place when several accounts use the same device.
-    if (authLoading) return undefined;
+    if (!sharedConsumerLocation) return;
+    consumerLocation.current = sharedConsumerLocation;
+    setLocationStatus('ready');
+    fetchListings(sharedConsumerLocation, { announceNewSinceLastVisit: false });
+  }, [fetchListings, sharedConsumerLocation]);
 
-    if (hasValidCoordinates(user)) {
-      const coordinates = {
-        latitude: Number(user.latitude),
-        longitude: Number(user.longitude),
-      };
-      consumerLocation.current = coordinates;
-      setLocationStatus('ready');
-      fetchListings(coordinates);
-    } else if (!navigator.geolocation) {
-      setLocationStatus('unsupported');
-      setLoading(false);
-    } else {
-      navigator.geolocation.getCurrentPosition(
-        ({ coords }) => {
-          const coordinates = { latitude: coords.latitude, longitude: coords.longitude };
-          consumerLocation.current = coordinates;
-          setLocationStatus('ready');
-          fetchListings(coordinates);
-        },
-        () => {
-          setLocationStatus('denied');
-          setLoading(false);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5 * 60 * 1000 },
-      );
-    }
+  useEffect(() => {
+    if (authLoading) return undefined;
+    refreshConsumerLocation().then((coordinates) => {
+      // A valid result is handled by the sharedConsumerLocation effect above.
+      // Avoid sending the same nearby-listings request twice on page load.
+      if (!coordinates) {
+        setLocationStatus('denied');
+        setLoading(false);
+      }
+    });
 
     const socket = io(API_URL, {
       auth: { token: localStorage.getItem('token') },
@@ -153,7 +133,7 @@ const ConsumerFeed = () => {
       socket.off('listing-quantity-updated', handleListingQuantityUpdated);
       socket.disconnect();
     };
-  }, [authLoading, fetchListings, fetchTrending, user]);
+  }, [authLoading, fetchListings, fetchTrending, refreshConsumerLocation, user]);
 
   const claimFood = async (listing) => {
     const confirmation = await Swal.fire({

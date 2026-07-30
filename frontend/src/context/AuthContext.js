@@ -1,10 +1,22 @@
 // frontend/src/context/AuthContext.js
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 import api from '../services/api';
 import { getPushNotificationToken } from '../services/firebase';
 import Swal from 'sweetalert2';
 
 const AuthContext = createContext();
+
+// Browser location providers often emit tiny Wi-Fi/GPS corrections every few
+// seconds. They should not reload the Feed unless the consumer actually moved.
+const locationChangedMeaningfully = (previous, next) => {
+  if (!previous) return true;
+  const toRadians = (value) => value * (Math.PI / 180);
+  const dLat = toRadians(next.latitude - previous.latitude);
+  const dLon = toRadians(next.longitude - previous.longitude);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRadians(previous.latitude)) * Math.cos(toRadians(next.latitude)) * Math.sin(dLon / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) >= 100;
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -17,6 +29,57 @@ export const AuthProvider = ({ children }) => {
   });
   const userRole = user?.role;
   const userId = user?._id || user?.id;
+  const [consumerLocation, setConsumerLocation] = useState(null);
+  const [consumerLocationStatus, setConsumerLocationStatus] = useState('idle');
+  const locationRequestRef = useRef(null);
+
+  const savedConsumerLocation = useCallback(() => {
+    const latitude = Number(user?.latitude);
+    const longitude = Number(user?.longitude);
+    return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
+      && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180
+      ? { latitude, longitude } : null;
+  }, [user]);
+
+  // Single shared source of truth for every consumer surface. GPS wins; the
+  // signup/profile coordinates are only used when GPS cannot be obtained.
+  const refreshConsumerLocation = useCallback(() => {
+    if (userRole !== 'consumer') return Promise.resolve(null);
+    if (locationRequestRef.current) return locationRequestRef.current;
+    const fallback = savedConsumerLocation();
+    setConsumerLocationStatus('requesting');
+    locationRequestRef.current = new Promise((resolve) => {
+      const finish = (coordinates, status) => {
+        setConsumerLocation((previous) => locationChangedMeaningfully(previous, coordinates) ? coordinates : previous);
+        setConsumerLocationStatus(status);
+        locationRequestRef.current = null;
+        resolve(coordinates);
+      };
+      if (!navigator.geolocation) return finish(fallback, fallback ? 'fallback' : 'unsupported');
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => finish({ latitude: coords.latitude, longitude: coords.longitude }, 'gps'),
+        () => finish(fallback, fallback ? 'fallback' : 'denied'),
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 5 * 60 * 1000 },
+      );
+    });
+    return locationRequestRef.current;
+  }, [savedConsumerLocation, userRole]);
+
+  useEffect(() => {
+    if (userRole !== 'consumer') { setConsumerLocation(null); setConsumerLocationStatus('idle'); return undefined; }
+    refreshConsumerLocation();
+    if (!navigator.geolocation) return undefined;
+    const watchId = navigator.geolocation.watchPosition(
+      ({ coords }) => {
+        const next = { latitude: coords.latitude, longitude: coords.longitude };
+        setConsumerLocation((previous) => locationChangedMeaningfully(previous, next) ? next : previous);
+        setConsumerLocationStatus('gps');
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5 * 60 * 1000 },
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [refreshConsumerLocation, userRole]);
 
   useEffect(() => {
     if (token) {
@@ -123,6 +186,9 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateUser,
+    consumerLocation,
+    consumerLocationStatus,
+    refreshConsumerLocation,
     isAuthenticated: !!user,
   };
 
