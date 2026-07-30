@@ -1,13 +1,16 @@
 // frontend/src/pages/Consumer/Profile/Profile.js
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../../context/AuthContext';
-import { FaEdit, FaSave, FaTimes, FaCamera, FaMapMarkerAlt, FaHome, FaSignOutAlt } from 'react-icons/fa';
+import { FaBars, FaEdit, FaSave, FaTimes, FaCamera, FaLeaf, FaMapMarkerAlt, FaSignOutAlt } from 'react-icons/fa';
 import api from '../../../services/api';
 
 const ConsumerProfile = () => {
   const { user, updateUser, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -25,6 +28,7 @@ const ConsumerProfile = () => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
+  const nav = [{ path: '/consumer/feed', label: 'Find food' }, { path: '/consumer/map', label: 'Nearby map' }, { path: '/consumer/claims', label: 'My claims' }, { path: '/consumer/profile', label: 'Profile' }];
 
   useEffect(() => {
     if (user) {
@@ -212,29 +216,27 @@ const ConsumerProfile = () => {
     }
   };
 
+  const leave = async () => {
+    if (await logout()) navigate('/login');
+  };
+
   return (
     <div className="app-shell min-h-screen bg-stone-50">
+      <nav className="border-b bg-white shadow-sm"><div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 md:px-6"><div className="flex items-center gap-3"><button aria-label="Open navigation" className="text-xl text-slate-600 md:hidden" onClick={() => setMenuOpen((value) => !value)}>{menuOpen ? <FaTimes /> : <FaBars />}</button><div className="flex items-center gap-2.5"><div className="hidden h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-200 sm:flex"><FaLeaf /></div><div><h1 className="text-xl font-extrabold tracking-tight text-slate-900">STOCK2<span className="text-amber-600">SERVE</span></h1><p className="hidden text-xs text-slate-500 md:block">Good to see you, {user?.fullName?.split(' ')[0] || 'there'}</p></div></div></div><div className="hidden items-center gap-2 md:flex">{nav.map((item) => <Link key={item.path} to={item.path} className={`rounded-xl px-4 py-2 text-sm font-semibold ${location.pathname === item.path ? 'bg-amber-100 text-amber-800' : 'text-slate-600 hover:bg-slate-100'}`}>{item.label}</Link>)}<button onClick={leave} className="ml-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"><FaSignOutAlt className="mr-2 inline" />Logout</button></div><button aria-label="Log out" onClick={leave} className="rounded-xl bg-red-500 px-3 py-2 text-white md:hidden"><FaSignOutAlt /></button></div>{menuOpen && <div className="border-t px-4 py-2 md:hidden">{nav.map((item) => <Link key={item.path} to={item.path} className="block rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>{item.label}</Link>)}</div>}</nav>
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.12),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(148,163,184,0.06),_transparent_35%)]" />
-      <div className="relative mx-auto max-w-7xl px-4 py-8 lg:px-10">
-        <header className="mb-8 rounded-[2rem] bg-white/90 p-6 shadow-2xl shadow-slate-300/20 backdrop-blur-lg">
+      <div className="relative mx-auto max-w-[1600px] px-4 py-6 md:px-6 md:py-8">
+        <header className="mb-8 rounded-[2rem] border border-amber-900/25 bg-white/90 p-6 shadow-2xl shadow-slate-300/20 backdrop-blur-lg">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Consumer Profile</p>
               <h1 className="mt-2 text-4xl font-extrabold text-slate-900">Hello, {user?.fullName || 'Friend'}</h1>
               <p className="mt-2 text-sm text-slate-500">Keep your account details updated to receive offers faster.</p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Link to="/consumer/feed" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                <FaHome /> Feed
-              </Link>
-              <button onClick={logout} className="inline-flex items-center gap-2 rounded-full bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-700">
-                <FaSignOutAlt /> Logout
-              </button>
-            </div>
+            <span className="w-fit rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800">Account settings</span>
           </div>
         </header>
         <div className="grid gap-8 xl:grid-cols-[380px_1fr]">
-          <aside className="rounded-[2rem] bg-white p-6 shadow-xl shadow-slate-300/20">
+          <aside className="rounded-[2rem] border border-amber-900/25 bg-white p-6 shadow-xl shadow-slate-300/20">
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-amber-200 bg-amber-50 shadow-lg shadow-amber-200/40">
                 {previewUrl ? (
@@ -262,7 +264,7 @@ const ConsumerProfile = () => {
               </div>
             </div>
           </aside>
-          <main className="rounded-[2rem] bg-white p-6 shadow-xl shadow-slate-300/20">
+          <main className="rounded-[2rem] border border-amber-900/25 bg-white p-6 shadow-xl shadow-slate-300/20">
             <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
               <div>
                 <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Profile details</p>
