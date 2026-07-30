@@ -213,7 +213,7 @@ const ConsumerProfile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="app-shell min-h-screen bg-stone-50">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.12),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(148,163,184,0.06),_transparent_35%)]" />
       <div className="relative mx-auto max-w-7xl px-4 py-8 lg:px-10">
         <header className="mb-8 rounded-[2rem] bg-white/90 p-6 shadow-2xl shadow-slate-300/20 backdrop-blur-lg">

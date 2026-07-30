@@ -72,7 +72,7 @@ const NearbyMap = () => {
   const leave = async () => { if (await logout()) navigate('/login'); };
   if (!position && !loading) return <div className="nearby-empty"><h2>Location is needed</h2><p>Allow location access to discover merchants within 10 km.</p><Link to="/consumer/profile">Update my location</Link></div>;
 
-  return <div className="nearby-page">
+  return <div className="app-shell nearby-page">
     <nav className="nearby-nav"><div className="nearby-brand"><button className="nearby-mobile-menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <FaTimes /> : <FaBars />}</button><strong>STOCK2<span>SERVE</span></strong></div><div className="nearby-navlinks">{nav.map((item) => <Link key={item.path} to={item.path} className={routeLocation.pathname === item.path ? 'active' : ''}>{item.label}</Link>)}<button onClick={leave}><FaSignOutAlt /> Logout</button></div></nav>
     {menuOpen && <div className="nearby-drawer">{nav.map((item) => <Link key={item.path} to={item.path} onClick={() => setMenuOpen(false)}>{item.label}</Link>)}</div>}
     <main className="nearby-map-area">

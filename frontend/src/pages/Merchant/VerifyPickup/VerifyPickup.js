@@ -35,7 +35,7 @@ const MerchantVerifyPickup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="app-shell min-h-screen bg-stone-50">
       <main className="mx-auto max-w-2xl p-4 md:p-8">
         <Link to="/merchant/dashboard" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-amber-700"><FaArrowLeft /> Dashboard</Link>
         <section className="mt-5 rounded-3xl bg-white p-6 shadow-sm md:p-9">

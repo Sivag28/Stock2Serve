@@ -34,7 +34,7 @@ const MerchantHistory = () => {
     return () => { socket.off('merchant-claim-created', onClaimCreated); socket.off('merchant-claim-updated', onClaimUpdated); socket.disconnect(); };
   }, []);
 
-  return <div className="min-h-screen bg-stone-50"><main className="mx-auto max-w-7xl p-4 md:p-8">
+  return <div className="app-shell min-h-screen bg-stone-50"><main className="mx-auto max-w-7xl p-4 md:p-8">
     <Link to="/merchant/dashboard" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-amber-700"><FaArrowLeft /> Dashboard</Link>
     <section className="mt-5 rounded-3xl bg-white p-5 shadow-sm md:p-7">
       <div className="flex items-center gap-3"><div className="rounded-xl bg-amber-100 p-3 text-amber-700"><FaClipboardList /></div><div><h1 className="text-3xl font-bold">Claim history</h1><p className="text-slate-500">New consumer claims appear here live.</p></div></div>

@@ -89,7 +89,7 @@ const MerchantListings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="app-shell min-h-screen bg-stone-50">
       <nav className="border-b bg-white shadow-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
           <div>
