@@ -97,6 +97,16 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
+  // Password-reset state is shared by consumer and merchant accounts.
+  // It is cleared immediately after a successful reset.
+  resetOtp: {
+    type: String,
+    select: false,
+  },
+  resetOtpExpires: {
+    type: Date,
+    select: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

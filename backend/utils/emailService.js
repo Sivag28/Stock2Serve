@@ -89,4 +89,50 @@ Save Food. Save More.`,
   return { sent: true, messageId: info.messageId };
 };
 
-module.exports = { sendClaimConfirmationEmail };
+const sendPasswordResetOtp = async ({ email, fullName, otp }) => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error('Email configuration is missing. Set EMAIL_USER and EMAIL_PASS before sending password reset emails.');
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  });
+
+  const greeting = fullName ? `Hello ${fullName},` : 'Hello,';
+  const text = `${greeting}
+
+We received a request to reset your Stock2Serve account password.
+
+Your One-Time Password (OTP) is:
+
+${otp}
+
+This OTP is valid for 10 minutes.
+
+If you did not request this password reset, please ignore this email.
+
+Do not share this OTP with anyone.
+
+Regards,
+Stock2Serve Team`;
+
+  const info = await transporter.sendMail({
+    from: `"Stock2Serve" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Stock2Serve Password Reset OTP',
+    text,
+    html: `<p>${escapeHtml(greeting)}</p>
+<p>We received a request to reset your Stock2Serve account password.</p>
+<p>Your One-Time Password (OTP) is:</p>
+<p style="font-size:28px;font-weight:700;letter-spacing:6px">${escapeHtml(otp)}</p>
+<p>This OTP is valid for 10 minutes.</p>
+<p>If you did not request this password reset, please ignore this email.</p>
+<p><strong>Do not share this OTP with anyone.</strong></p>
+<p>Regards,<br>Stock2Serve Team</p>`,
+  });
+
+  return { sent: true, messageId: info.messageId };
+};
+
+module.exports = { sendClaimConfirmationEmail, sendPasswordResetOtp };

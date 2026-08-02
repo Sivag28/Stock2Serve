@@ -1,8 +1,10 @@
 // backend/controllers/authController.js
 const User = require('../models/User');
 const generateJWT = require('../utils/generateJWT');
+const { sendPasswordResetOtp } = require('../utils/emailService');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 exports.register = async (req, res) => {
   try {
@@ -208,6 +210,66 @@ exports.updateConsumerProfile = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ success: false, message: 'Email address is required.' });
+
+    const user = await User.findOne({ email }).select('+resetOtp +resetOtpExpires');
+    if (!user) return res.status(404).json({ success: false, message: 'No account is registered with this email address.' });
+
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    user.resetOtp = otp;
+    user.resetOtpExpires = new Date(Date.now() + (10 * 60 * 1000));
+    await user.save();
+
+    try {
+      await sendPasswordResetOtp({ email: user.email, fullName: user.fullName, otp });
+    } catch (emailError) {
+      user.resetOtp = undefined;
+      user.resetOtpExpires = undefined;
+      await user.save();
+      console.error('Password reset email error:', emailError);
+      return res.status(500).json({ success: false, message: 'Unable to send the reset OTP. Please try again later.' });
+    }
+
+    return res.json({ success: true, message: 'A password reset OTP has been sent to your email address.' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({ success: false, message: 'Unable to process password reset request.' });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const otp = String(req.body?.otp || '').trim();
+    const password = String(req.body?.password || '');
+    if (!email || !/^\d{6}$/.test(otp) || !password) {
+      return res.status(400).json({ success: false, message: 'Email, a valid 6-digit OTP, and new password are required.' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+    }
+
+    const user = await User.findOne({ email }).select('+resetOtp +resetOtpExpires');
+    if (!user || !user.resetOtp || user.resetOtp !== otp || !user.resetOtpExpires || user.resetOtpExpires.getTime() < Date.now()) {
+      return res.status(400).json({ success: false, message: 'The OTP is invalid or has expired. Please request a new one.' });
+    }
+
+    // The User pre-save hook hashes modified passwords with bcrypt before persisting.
+    user.password = password;
+    user.resetOtp = undefined;
+    user.resetOtpExpires = undefined;
+    await user.save();
+
+    return res.json({ success: true, message: 'Password reset successfully.' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({ success: false, message: 'Unable to reset password. Please try again later.' });
   }
 };
 

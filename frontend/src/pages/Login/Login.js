@@ -93,6 +93,7 @@ const Login = () => {
             <label className="block text-sm font-semibold text-slate-700">Password
               <div className="relative mt-2"><input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" className="w-full rounded-xl border border-slate-200 px-4 py-3 pr-11 text-sm outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" /><FaLock className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" /></div>
             </label>
+            <div className="-mt-2 text-right"><Link to="/forgot-password" className="text-sm font-bold text-amber-700 hover:underline">Forgot password?</Link></div>
             {error && <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
             <button disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-amber-200 transition hover:from-amber-700 hover:to-amber-800 disabled:cursor-not-allowed disabled:opacity-60">
               {role === 'merchant' ? <FaStore /> : <FaUser />}{submitting ? 'Signing in…' : 'Sign in securely'}
