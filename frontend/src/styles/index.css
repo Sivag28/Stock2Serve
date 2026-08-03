@@ -110,6 +110,15 @@
   .merchant-dashboard td {
     border: 1px solid rgba(146, 64, 14, 0.28);
   }
+
+  .merchant-dashboard article,
+  .merchant-dashboard aside,
+  .merchant-dashboard > section:not(.grid),
+  .merchant-dashboard .rounded-2xl.border {
+    border-color: rgba(146, 64, 14, 0.42);
+    border-width: 1px;
+    border-style: solid;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
