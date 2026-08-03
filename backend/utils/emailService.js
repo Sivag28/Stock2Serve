@@ -25,6 +25,9 @@ const sendClaimConfirmationEmail = async ({ consumer, merchant, listing, claim }
     console.warn('Claim confirmation email was skipped: email configuration or consumer email is missing.');
     return { sent: false };
   }
+  
+  console.log("EMAIL_USER:", process.env.EMAIL_USER);
+  console.log("EMAIL_PASS exists:", !!process.env.EMAIL_PASS);
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
