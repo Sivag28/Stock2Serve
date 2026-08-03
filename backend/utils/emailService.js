@@ -26,10 +26,23 @@ const sendClaimConfirmationEmail = async ({ consumer, merchant, listing, claim }
     return { sent: false };
   }
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// Verify SMTP connection
+try {
+  await transporter.verify();
+  console.log("SMTP connection successful");
+} catch (error) {
+  console.error("SMTP Verify Error:", error);
+}
   const quantity = Number(claim.quantity);
   const pricePerItem = Number(listing.discountedPrice);
   const totalAmount = quantity * pricePerItem;
