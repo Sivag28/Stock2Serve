@@ -325,7 +325,7 @@ exports.getClaimHistory = async (req, res) => {
       .populate('consumerId', 'fullName')
       // Older claims predate the per-reservation tokenExpiresAt field, so also
       // return the listing expiry as a backward-compatible display fallback.
-      .populate('listingId', 'foodName discountedPrice expiryTime')
+      .populate('listingId', 'foodName category discountedPrice expiryTime')
       .sort({ createdAt: -1 });
     res.json({ success: true, claims });
   } catch (error) {
