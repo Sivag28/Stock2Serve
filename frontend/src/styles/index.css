@@ -99,6 +99,17 @@
   .app-shell .bg-slate-900:not(span):hover {
     box-shadow: 0 14px 24px -14px rgba(146, 64, 14, 0.85);
   }
+
+  /* Make merchant-dashboard data tables easy to scan without overpowering cards. */
+  .merchant-dashboard table {
+    border-collapse: collapse;
+    border: 1px solid rgba(146, 64, 14, 0.42);
+  }
+
+  .merchant-dashboard th,
+  .merchant-dashboard td {
+    border: 1px solid rgba(146, 64, 14, 0.28);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
