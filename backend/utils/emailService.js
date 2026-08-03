@@ -1,4 +1,4 @@
-const { BrevoClient } = require('@getbrevo/brevo');
+const nodemailer = require('nodemailer');
 
 const formatIndianDateTime = (value) => {
   if (!value) return 'Not available';
@@ -20,23 +20,16 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[character]));
 
-let brevoClient;
-
-const getBrevoClient = () => {
-  if (!brevoClient) {
-    if (!process.env.BREVO_API_KEY) {
-      throw new Error('Brevo API key is missing. Set BREVO_API_KEY before sending emails.');
-    }
-    brevoClient = new BrevoClient({ apiKey: process.env.BREVO_API_KEY });
-  }
-  return brevoClient;
-};
-
 const sendClaimConfirmationEmail = async ({ consumer, merchant, listing, claim }) => {
-  if (!process.env.EMAIL_USER || !process.env.BREVO_API_KEY || !consumer?.email) {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || !consumer?.email) {
     console.warn('Claim confirmation email was skipped: email configuration or consumer email is missing.');
     return { sent: false };
   }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  });
 
   const quantity = Number(claim.quantity);
   const pricePerItem = Number(listing.discountedPrice);
@@ -44,9 +37,11 @@ const sendClaimConfirmationEmail = async ({ consumer, merchant, listing, claim }
   const pickupTime = `${formatPickupTime(listing.pickupStart)} – ${formatPickupTime(listing.pickupEnd)}`;
   const tokenExpiry = formatIndianDateTime(claim.tokenExpiresAt);
 
-  const result = await getBrevoClient().transactionalEmails.sendTransacEmail({
+  const info = await transporter.sendMail({
+    from: `"Stock2Serve" <${process.env.EMAIL_USER}>`,
+    to: consumer.email,
     subject: 'Food Claimed Successfully – Pickup Details | Stock2Serve',
-    textContent: `Hello ${consumer.fullName || 'Customer'},
+    text: `Hello ${consumer.fullName || 'Customer'},
 
 Your food reservation has been successfully confirmed. Please find your pickup details below.
 
@@ -91,18 +86,20 @@ Save Food. Save More.`,
 <ul><li>Present your pickup token to the merchant during pickup.</li><li>The pickup token is valid only until the expiry time mentioned above.</li><li>Please collect your food within the pickup window.</li><li>If the token expires before pickup, your reservation will be automatically cancelled and the food may be made available to other consumers.</li><li>Kindly carry the exact payment amount, if payment is to be made at pickup.</li></ul>
 <p>Thank you for choosing Stock2Serve and helping reduce food waste.</p>
 <p>Best Regards,<br><strong>Stock2Serve Team</strong><br>Save Food. Save More.</p>`,
-    sender: { name: 'Stock2Serve', email: process.env.EMAIL_USER },
-    to: [{ email: consumer.email }],
   });
 
-  const messageId = result?.data?.messageId ?? result?.data?.messageIds?.[0];
-  return { sent: true, messageId };
+  return { sent: true, messageId: info.messageId };
 };
 
 const sendPasswordResetOtp = async ({ email, fullName, otp }) => {
-  if (!process.env.EMAIL_USER || !process.env.BREVO_API_KEY) {
-    throw new Error('Email configuration is missing. Set EMAIL_USER and BREVO_API_KEY before sending password reset emails.');
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error('Email configuration is missing. Set EMAIL_USER and EMAIL_PASS before sending password reset emails.');
   }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  });
 
   const greeting = fullName ? `Hello ${fullName},` : 'Hello,';
   const text = `${greeting}
@@ -122,9 +119,11 @@ Do not share this OTP with anyone.
 Regards,
 Stock2Serve Team`;
 
-  const result = await getBrevoClient().transactionalEmails.sendTransacEmail({
+  const info = await transporter.sendMail({
+    from: `"Stock2Serve" <${process.env.EMAIL_USER}>`,
+    to: email,
     subject: 'Stock2Serve Password Reset OTP',
-    textContent: text,
+    text,
     html: `<p>${escapeHtml(greeting)}</p>
 <p>We received a request to reset your Stock2Serve account password.</p>
 <p>Your One-Time Password (OTP) is:</p>
@@ -133,12 +132,9 @@ Stock2Serve Team`;
 <p>If you did not request this password reset, please ignore this email.</p>
 <p><strong>Do not share this OTP with anyone.</strong></p>
 <p>Regards,<br>Stock2Serve Team</p>`,
-    sender: { name: 'Stock2Serve', email: process.env.EMAIL_USER },
-    to: [{ email }],
   });
 
-  const messageId = result?.data?.messageId ?? result?.data?.messageIds?.[0];
-  return { sent: true, messageId };
+  return { sent: true, messageId: info.messageId };
 };
 
 module.exports = { sendClaimConfirmationEmail, sendPasswordResetOtp };
