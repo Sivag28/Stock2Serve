@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useCallback, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaArrowRight, FaBars, FaBoxOpen, FaClock, FaDrumstickBite, FaFire, FaLeaf, FaMapMarkerAlt, FaSearch, FaSignOutAlt, FaStore, FaTimes, FaUtensils } from 'react-icons/fa';

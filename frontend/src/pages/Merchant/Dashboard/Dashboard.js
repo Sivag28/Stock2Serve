@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   FaArrowDown, FaArrowUp, FaBars, FaBolt, FaBoxOpen, FaChartLine,
   FaCheckCircle, FaClipboardList, FaClock, FaCloud, FaDownload, FaFileExport,
-  FaHistory, FaHome, FaLeaf, FaPlus, FaRecycle, FaSearch, FaSignOutAlt,
+  FaHistory, FaHome, FaLeaf, FaPlus, FaRecycle, FaSignOutAlt,
   FaStore, FaTimes, FaUser,
 } from 'react-icons/fa';
 import { useAuth } from '../../../context/AuthContext';
@@ -59,7 +59,7 @@ const MerchantDashboard = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [period, setPeriod] = useState('Monthly');
-  const [search, setSearch] = useState('');
+  const [search] = useState('');
   const [loading, setLoading] = useState(true);
   const [allStats, setAllStats] = useState({ activeListings: 0, orders: 0, completedOrders: 0, revenueRecovered: 0, foodSaved: 0, expiredListings: 0 });
   const [records, setRecords] = useState({ listings: [], claims: [] });

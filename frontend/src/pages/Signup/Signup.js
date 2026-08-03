@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaCheckCircle, FaShieldAlt, FaStore, FaUser } from 'react-icons/fa';
+import { FaCheckCircle, FaShieldAlt, FaStore, FaUser } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import MerchantSignup from './MerchantSignup';
 import ConsumerSignup from './ConsumerSignup';

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaLock, FaStore, FaUser, FaChevronDown } from 'react-icons/fa';
+import { FaLock, FaStore, FaUser, FaChevronDown } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../context/AuthContext';
 
