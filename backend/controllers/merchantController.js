@@ -89,6 +89,8 @@ exports.updateProfile = async (req, res) => {
         }
       }
       user.profilePhoto = '/uploads/profile/' + req.file.filename;
+      user.profileImageData = fs.readFileSync(req.file.path);
+      user.profileImageMimeType = req.file.mimetype;
     }
 
     await user.save();

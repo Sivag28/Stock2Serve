@@ -32,6 +32,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  profileImageData: {
+    type: Buffer,
+    select: false,
+  },
+  profileImageMimeType: {
+    type: String,
+    select: false,
+  },
   // Merchant specific fields
   shopName: {
     type: String,

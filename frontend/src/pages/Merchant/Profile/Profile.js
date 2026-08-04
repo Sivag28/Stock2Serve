@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../../context/AuthContext';
 import { FaBars, FaBoxOpen, FaCamera, FaClipboardList, FaEdit, FaHistory, FaHome, FaMapMarkerAlt, FaPlus, FaSave, FaSignOutAlt, FaTimes, FaUser, FaLeaf } from 'react-icons/fa';
-import api from '../../../services/api';
+import api, { API_URL } from '../../../services/api';
 import { formatIndianTime, getIndianTimeParts, toIndianStoredTime } from '../../../utils/formatDate';
 
 const IndianTimePicker = ({ name, value, onChange, disabled }) => {
@@ -90,8 +90,7 @@ const MerchantProfile = () => {
         profilePhoto: user.profilePhoto || null,
       });
       if (user.profilePhoto) {
-        const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-        setPreviewUrl(`${baseURL}${user.profilePhoto}`);
+        setPreviewUrl(`${API_URL}/api/auth/users/${user._id}/profile-image`);
       }
     }
   }, [user]);
@@ -243,8 +242,7 @@ const MerchantProfile = () => {
         profilePhoto: user.profilePhoto || null,
       });
       if (user.profilePhoto) {
-        const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-        setPreviewUrl(`${baseURL}${user.profilePhoto}`);
+        setPreviewUrl(`${API_URL}/api/auth/users/${user._id}/profile-image`);
       } else {
         setPreviewUrl(null);
       }

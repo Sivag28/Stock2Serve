@@ -63,6 +63,8 @@ exports.register = async (req, res) => {
     // Handle profile photo
     if (req.file) {
       userData.profilePhoto = `/uploads/profile/${req.file.filename}`;
+      userData.profileImageData = fs.readFileSync(req.file.path);
+      userData.profileImageMimeType = req.file.mimetype;
     }
 
     const user = new User(userData);
@@ -194,6 +196,8 @@ exports.updateConsumerProfile = async (req, res) => {
         }
       }
       user.profilePhoto = '/uploads/profile/' + req.file.filename;
+      user.profileImageData = fs.readFileSync(req.file.path);
+      user.profileImageMimeType = req.file.mimetype;
     }
 
     await user.save();
@@ -210,6 +214,26 @@ exports.updateConsumerProfile = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getProfileImage = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .select('+profileImageData +profileImageMimeType profilePhoto');
+    if (!user?.profilePhoto) return res.status(404).end();
+
+    if (user.profileImageData) {
+      res.set('Content-Type', user.profileImageMimeType || 'application/octet-stream');
+      return res.send(user.profileImageData);
+    }
+
+    const relativeImagePath = user.profilePhoto.replace(/^[/\\]+/, '');
+    const localImagePath = path.join(__dirname, '..', relativeImagePath);
+    if (fs.existsSync(localImagePath)) return res.sendFile(localImagePath);
+    return res.status(404).end();
+  } catch (error) {
+    return res.status(404).end();
   }
 };
 

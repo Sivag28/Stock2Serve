@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../../context/AuthContext';
 import { FaBars, FaEdit, FaSave, FaTimes, FaCamera, FaLeaf, FaMapMarkerAlt, FaSignOutAlt } from 'react-icons/fa';
-import api from '../../../services/api';
+import api, { API_URL } from '../../../services/api';
 
 const ConsumerProfile = () => {
   const { user, updateUser, logout } = useAuth();
@@ -44,8 +44,7 @@ const ConsumerProfile = () => {
         profilePhoto: user.profilePhoto || null,
       });
       if (user.profilePhoto) {
-        const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-        setPreviewUrl(`${baseURL}${user.profilePhoto}`);
+        setPreviewUrl(`${API_URL}/api/auth/users/${user._id}/profile-image`);
       }
     }
   }, [user]);
@@ -208,8 +207,7 @@ const ConsumerProfile = () => {
         profilePhoto: user.profilePhoto || null,
       });
       if (user.profilePhoto) {
-        const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-        setPreviewUrl(`${baseURL}${user.profilePhoto}`);
+        setPreviewUrl(`${API_URL}/api/auth/users/${user._id}/profile-image`);
       } else {
         setPreviewUrl(null);
       }
