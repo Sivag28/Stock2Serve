@@ -3,15 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaBars, FaBoxOpen, FaClipboardList, FaClock, FaDrumstickBite, FaEdit, FaHistory, FaHome, FaLeaf, FaPlus, FaPowerOff, FaSearch, FaSignOutAlt, FaTimes, FaTrash, FaUser } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../../context/AuthContext';
-import api from '../../../services/api';
+import api, { API_URL } from '../../../services/api';
 import { formatIndianTime } from '../../../utils/formatDate';
 
-const imageUrl = (image) => {
-  if (!image) return null;
-  if (image.startsWith('http')) return image;
-  const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-  return `${apiBaseUrl}${image}`;
-};
+const imageUrl = (image) => image || null;
 
 const navItems = [{ path: '/merchant/dashboard', label: 'Dashboard', icon: <FaHome /> }, { path: '/merchant/add-item', label: 'Add Item', icon: <FaPlus /> }, { path: '/merchant/inventory', label: 'Inventory', icon: <FaBoxOpen /> }, { path: '/merchant/verify-pickup', label: 'Verify pickup', icon: <FaClipboardList /> }, { path: '/merchant/history', label: 'History', icon: <FaHistory /> }, { path: '/merchant/profile', label: 'Profile', icon: <FaUser /> }];
 
@@ -29,7 +24,10 @@ const MerchantListings = () => {
   const fetchListings = async () => {
     try {
       const response = await api.get('/merchant/listings');
-      setListings(response.data.listings || []);
+      setListings((response.data.listings || []).map((listing) => ({
+        ...listing,
+        image: listing.image ? `${API_URL}/api/listings/${listing._id}/image` : null,
+      })));
     } catch (error) {
       console.error(error);
     } finally {
