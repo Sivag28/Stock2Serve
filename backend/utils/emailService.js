@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+const getSendEmail = async () => (await import('./sendEmail.mjs')).sendEmail;
 
 const formatIndianDateTime = (value) => {
   if (!value) return 'Not available';
@@ -21,15 +21,10 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character
 }[character]));
 
 const sendClaimConfirmationEmail = async ({ consumer, merchant, listing, claim }) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || !consumer?.email) {
+  if (!process.env.RESEND_API_KEY || !consumer?.email) {
     console.warn('Claim confirmation email was skipped: email configuration or consumer email is missing.');
     return { sent: false };
   }
-
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
 
   const quantity = Number(claim.quantity);
   const pricePerItem = Number(listing.discountedPrice);
@@ -37,38 +32,11 @@ const sendClaimConfirmationEmail = async ({ consumer, merchant, listing, claim }
   const pickupTime = `${formatPickupTime(listing.pickupStart)} – ${formatPickupTime(listing.pickupEnd)}`;
   const tokenExpiry = formatIndianDateTime(claim.tokenExpiresAt);
 
-  const info = await transporter.sendMail({
-    from: `"Stock2Serve" <${process.env.EMAIL_USER}>`,
-    to: consumer.email,
-    subject: 'Food Claimed Successfully – Pickup Details | Stock2Serve',
-    text: `Hello ${consumer.fullName || 'Customer'},
-
-Your food reservation has been successfully confirmed. Please find your pickup details below.
-
-Reservation Details
-Merchant: ${merchant?.shopName || 'Stock2Serve merchant'}
-Shop Address: ${[merchant?.shopAddress, merchant?.city].filter(Boolean).join(', ') || 'Not available'}
-Food Item: ${listing.foodName}
-Quantity: ${quantity}
-Price per Item: ₹${pricePerItem}
-Total Amount: ₹${totalAmount}
-Pickup Token: ${claim.pickupToken}
-Pickup Time: ${pickupTime}
-Pickup Token Expires At: ${tokenExpiry} IST
-
-Important Instructions
-- Present your pickup token to the merchant during pickup.
-- The pickup token is valid only until the expiry time mentioned above.
-- Please collect your food within the pickup window.
-- If the token expires before pickup, your reservation will be automatically cancelled and the food may be made available to other consumers.
-- Kindly carry the exact payment amount, if payment is to be made at pickup.
-
-Thank you for choosing Stock2Serve and helping reduce food waste.
-
-Best Regards,
-Stock2Serve Team
-Save Food. Save More.`,
-    html: `<p>Hello ${escapeHtml(consumer.fullName || 'Customer')},</p>
+  const sendEmail = await getSendEmail();
+  const info = await sendEmail(
+    consumer.email,
+    'Food Claimed Successfully – Pickup Details | Stock2Serve',
+    `<p>Hello ${escapeHtml(consumer.fullName || 'Customer')},</p>
 <p>Your food reservation has been successfully confirmed. Please find your pickup details below.</p>
 <h2>🍽️ Reservation Details</h2>
 <table style="border-collapse:collapse">
@@ -86,45 +54,22 @@ Save Food. Save More.`,
 <ul><li>Present your pickup token to the merchant during pickup.</li><li>The pickup token is valid only until the expiry time mentioned above.</li><li>Please collect your food within the pickup window.</li><li>If the token expires before pickup, your reservation will be automatically cancelled and the food may be made available to other consumers.</li><li>Kindly carry the exact payment amount, if payment is to be made at pickup.</li></ul>
 <p>Thank you for choosing Stock2Serve and helping reduce food waste.</p>
 <p>Best Regards,<br><strong>Stock2Serve Team</strong><br>Save Food. Save More.</p>`,
-  });
+  );
 
-  return { sent: true, messageId: info.messageId };
+  return { sent: true, messageId: info.id };
 };
 
 const sendPasswordResetOtp = async ({ email, fullName, otp }) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error('Email configuration is missing. Set EMAIL_USER and EMAIL_PASS before sending password reset emails.');
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('Email configuration is missing. Set RESEND_API_KEY before sending password reset emails.');
   }
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
-
   const greeting = fullName ? `Hello ${fullName},` : 'Hello,';
-  const text = `${greeting}
-
-We received a request to reset your Stock2Serve account password.
-
-Your One-Time Password (OTP) is:
-
-${otp}
-
-This OTP is valid for 10 minutes.
-
-If you did not request this password reset, please ignore this email.
-
-Do not share this OTP with anyone.
-
-Regards,
-Stock2Serve Team`;
-
-  const info = await transporter.sendMail({
-    from: `"Stock2Serve" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject: 'Stock2Serve Password Reset OTP',
-    text,
-    html: `<p>${escapeHtml(greeting)}</p>
+  const sendEmail = await getSendEmail();
+  const info = await sendEmail(
+    email,
+    'Stock2Serve Password Reset OTP',
+    `<p>${escapeHtml(greeting)}</p>
 <p>We received a request to reset your Stock2Serve account password.</p>
 <p>Your One-Time Password (OTP) is:</p>
 <p style="font-size:28px;font-weight:700;letter-spacing:6px">${escapeHtml(otp)}</p>
@@ -132,9 +77,9 @@ Stock2Serve Team`;
 <p>If you did not request this password reset, please ignore this email.</p>
 <p><strong>Do not share this OTP with anyone.</strong></p>
 <p>Regards,<br>Stock2Serve Team</p>`,
-  });
+  );
 
-  return { sent: true, messageId: info.messageId };
+  return { sent: true, messageId: info.id };
 };
 
 module.exports = { sendClaimConfirmationEmail, sendPasswordResetOtp };
