@@ -8,12 +8,18 @@ const getWalkingRoute = async ({ origin, destination }) => {
     throw error;
   }
 
-  const params = new URLSearchParams({
-    start: `${origin.longitude},${origin.latitude}`,
-    end: `${destination.longitude},${destination.latitude}`,
-  });
-  const response = await fetch(`${ORS_WALKING_URL}?${params}`, {
-    headers: { Authorization: apiKey },
+  const response = await fetch(ORS_WALKING_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: apiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      coordinates: [
+        [origin.longitude, origin.latitude],
+        [destination.longitude, destination.latitude],
+      ],
+    }),
     signal: AbortSignal.timeout(10_000),
   });
 
