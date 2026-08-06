@@ -34,7 +34,7 @@ const notifyNearbyConsumersAboutListing = async (io, listing, notification = {})
   const foregroundConsumers = recipients.filter((consumer) => consumer.isForeground);
   foregroundConsumers.forEach((consumer) => {
     io.to(`consumer:${consumer._id}`).emit('nearby-listing', {
-      title: notification.title || '🍽️ New Food Available',
+      title: notification.title || 'New Food Available',
       body: notification.body || 'A nearby merchant has added fresh surplus food. Go and view nearby offers.',
       type: notification.type || 'new-food',
       link: '/consumer/feed',
@@ -51,7 +51,7 @@ const notifyNearbyConsumersAboutListing = async (io, listing, notification = {})
     backgroundTokens: tokens.length,
   });
   const result = await sendPushNotifications(tokens, {
-    title: '🍽️ New Food Available',
+    title: 'New Food Available',
     body: 'A nearby merchant has added fresh surplus food. Go and view nearby offers.',
     type: 'new-food',
     ...notification,
@@ -71,7 +71,7 @@ const notifyPickupReminder = async (io, claim) => {
   }
 
   const result = await sendPushNotifications(consumer.fcmTokens, {
-    title: '⏰ Pickup Reminder',
+    title: 'Pickup Reminder',
     body: 'Your pickup token expires in 30 minutes. Collect your food before it expires.',
     type: 'pickup-reminder',
     link: '/consumer/claims',
