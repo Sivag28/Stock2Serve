@@ -2,6 +2,7 @@ const Listing = require('../models/Listing');
 const User = require('../models/User');
 const fs = require('fs');
 const path = require('path');
+const { getWalkingRoute } = require('../config/openRouteService');
 
 const NEARBY_RADIUS_METERS = 10 * 1000;
 
@@ -46,6 +47,38 @@ exports.getActiveListings = async (req, res) => {
     res.json({ success: true, listings });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getMerchantWalkingRoute = async (req, res) => {
+  try {
+    if (req.userRole !== 'consumer') {
+      return res.status(403).json({ success: false, message: 'Only consumers can request walking routes.' });
+    }
+
+    const { latitude, longitude } = req.query;
+    if (!validCoordinate(latitude, -90, 90) || !validCoordinate(longitude, -180, 180)) {
+      return res.status(400).json({ success: false, message: 'A valid latitude and longitude are required.' });
+    }
+
+    const merchant = await User.findOne({ _id: req.params.merchantId, role: 'merchant' })
+      .select('latitude longitude')
+      .lean();
+    if (!merchant || !validCoordinate(merchant.latitude, -90, 90) || !validCoordinate(merchant.longitude, -180, 180)) {
+      return res.status(404).json({ success: false, message: 'Merchant location is unavailable.' });
+    }
+
+    const route = await getWalkingRoute({
+      origin: { latitude: Number(latitude), longitude: Number(longitude) },
+      destination: { latitude: merchant.latitude, longitude: merchant.longitude },
+    });
+    return res.json({ success: true, route });
+  } catch (error) {
+    console.error('Walking route error:', error);
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.status === 503 ? error.message : 'Unable to find a walking route right now.',
+    });
   }
 };
 
