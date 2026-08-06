@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaLock, FaStore, FaUser, FaChevronDown } from 'react-icons/fa';
+import { FaLock, FaStore, FaUser, FaChevronDown, FaEye, FaEyeSlash } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../context/AuthContext';
 
@@ -8,6 +8,7 @@ const Login = () => {
   const [role, setRole] = useState('consumer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { login, user } = useAuth();
@@ -91,7 +92,17 @@ const Login = () => {
               <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" />
             </label>
             <label className="block text-sm font-semibold text-slate-700">Password
-              <div className="relative mt-2"><input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" className="w-full rounded-xl border border-slate-200 px-4 py-3 pr-11 text-sm outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" /><FaLock className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" /></div>
+              <div className="relative mt-2">
+                <input required type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" className="w-full rounded-xl border border-slate-200 px-4 py-3 pr-12 text-sm outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
             </label>
             <div className="-mt-2 text-right"><Link to="/forgot-password" className="text-sm font-bold text-amber-700 hover:underline">Forgot password?</Link></div>
             {error && <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
