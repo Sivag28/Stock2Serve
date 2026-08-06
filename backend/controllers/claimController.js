@@ -58,7 +58,8 @@ exports.createClaim = async (req, res) => {
         path: 'listingId',
         select: 'foodName discountedPrice pickupStart pickupEnd merchantId',
         populate: { path: 'merchantId', select: 'shopName shopAddress city' },
-      });
+      })
+      .lean();
     req.app.get('io').to(`merchant:${listing.merchantId}`).emit('merchant-claim-created', { claim: historyClaim });
 
     // A mail failure must never undo a confirmed reservation or restore its stock.
@@ -145,7 +146,7 @@ exports.verifyPickup = async (req, res) => {
     const claim = await Claim.findOne({ pickupToken: token }).populate('consumerId', 'fullName');
     if (!claim) return res.status(404).json({ success: false, message: 'No claim was found for this token.' });
 
-    const listing = await Listing.findById(claim.listingId);
+    const listing = await Listing.findById(claim.listingId).lean();
     if (!listing || String(listing.merchantId) !== String(req.userId)) {
       return res.status(403).json({ success: false, message: 'This token does not belong to your business.' });
     }

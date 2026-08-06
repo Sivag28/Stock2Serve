@@ -16,7 +16,12 @@ const RADIUS_METERS = 10000;
 const categoryLabel = (category = '') => ({ cafe: 'Cafe', bakery: 'Bakery', restaurant: 'Restaurant', supermarket: 'Grocery' }[category] || category.replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()) || 'Merchant');
 const haversine = (from, to) => { const rad = (value) => value * Math.PI / 180; const dLat = rad(to.latitude - from.latitude); const dLon = rad(to.longitude - from.longitude); const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(from.latitude)) * Math.cos(rad(to.latitude)) * Math.sin(dLon / 2) ** 2; return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); };
 const distanceText = (distance) => distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(1)} km`;
-const merchantLogo = (merchant) => merchant.profilePhoto ? `${API_URL}${merchant.profilePhoto}` : null;
+const merchantLogo = (merchant) => {
+  if (!merchant.profilePhoto) return null;
+  return /^https?:\/\//i.test(merchant.profilePhoto)
+    ? merchant.profilePhoto
+    : `${API_URL}${merchant.profilePhoto}`;
+};
 const markerState = (merchant) => merchant.markerStatus || (() => { const minutes = (new Date(merchant.nextExpiry).getTime() - Date.now()) / 60000; if (minutes <= 10) return 'urgent'; return merchant.totalMeals <= 8 ? 'limited' : 'plenty'; })();
 const markerIcon = (merchant, fresh = false) => new L.DivIcon({ className: 'nearby-marker-shell', iconSize: [52, 52], iconAnchor: [26, 26], html: `<div class="nearby-marker ${markerState(merchant)} ${fresh ? 'fresh' : ''}"><span class="nearby-marker-dot">${merchant.totalMeals}</span><span>🍽</span></div>` });
 const userIcon = new L.DivIcon({ className: 'nearby-user-shell', iconSize: [22, 22], iconAnchor: [11, 11], html: '<div class="nearby-user-dot"></div>' });

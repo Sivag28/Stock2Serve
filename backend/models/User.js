@@ -32,6 +32,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  // Cloudinary's stable asset identifier. It is needed to remove a replaced
+  // profile photo without affecting legacy local/MongoDB-backed images.
+  profilePhotoPublicId: {
+    type: String,
+    default: null,
+    select: false,
+  },
   profileImageData: {
     type: Buffer,
     select: false,

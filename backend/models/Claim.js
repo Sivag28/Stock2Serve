@@ -20,4 +20,17 @@ const claimSchema = new mongoose.Schema({
   collectedAt: { type: Date, default: null },
 }, { timestamps: true });
 
+// Serves each consumer's claim history, newest claim first.
+claimSchema.index({ consumerId: 1, createdAt: -1 });
+
+// Serves merchant dashboard and claim-history queries for the merchant's listings.
+claimSchema.index({ listingId: 1, createdAt: -1 });
+
+// Serves both recurring claim jobs: claimed-claim expiry checks and the
+// 30-minute pickup-reminder lookup. status is also the prefix for expiry checks.
+claimSchema.index({ status: 1, pickupReminderSentAt: 1, tokenExpiresAt: 1 });
+
+// Serves the recent-claims match at the start of the trending aggregation.
+claimSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Claim', claimSchema);

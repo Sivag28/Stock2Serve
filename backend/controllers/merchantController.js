@@ -2,9 +2,8 @@
 const User = require('../models/User');
 const Listing = require('../models/Listing');
 const Claim = require('../models/Claim');
-const path = require('path');
-const fs = require('fs');
 const { notifyNearbyConsumersAboutListing } = require('../utils/notifications');
+const { uploadImage, deleteImage } = require('../config/cloudinary');
 
 const parseIndianExpiryTime = ({ calendar, tokenexpiryTime, expiryTime }) => {
   const hasCalendarDate = /^\d{4}-\d{2}-\d{2}$/.test(String(calendar || ''));
@@ -19,7 +18,7 @@ const parseIndianExpiryTime = ({ calendar, tokenexpiryTime, expiryTime }) => {
 // Get merchant profile
 exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-password');
+    const user = await User.findById(req.userId).select('-password').lean();
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -32,7 +31,7 @@ exports.getProfile = async (req, res) => {
 // Update merchant profile
 exports.updateProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.userId).select('+profilePhotoPublicId');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -59,7 +58,7 @@ exports.updateProfile = async (req, res) => {
 
     // Check if email is being changed and already exists
     if (email && email !== user.email) {
-      const existingUser = await User.findOne({ email });
+      const existingUser = await User.findOne({ email }).lean();
       if (existingUser) {
         return res.status(400).json({ success: false, message: 'Email already in use' });
       }
@@ -81,23 +80,24 @@ exports.updateProfile = async (req, res) => {
 
     // Handle profile photo upload
     if (req.file) {
-      // Delete old photo if exists
-      if (user.profilePhoto) {
-        const oldPhotoPath = path.join(__dirname, '..', user.profilePhoto);
-        if (fs.existsSync(oldPhotoPath)) {
-          fs.unlinkSync(oldPhotoPath);
-        }
-      }
-      user.profilePhoto = '/uploads/profile/' + req.file.filename;
-      user.profileImageData = fs.readFileSync(req.file.path);
-      user.profileImageMimeType = req.file.mimetype;
+      const uploadedImage = await uploadImage(req.file.buffer, 'stock2serve/profiles');
+      const oldPhotoPublicId = user.profilePhotoPublicId;
+      user.profilePhoto = uploadedImage.secure_url;
+      user.profilePhotoPublicId = uploadedImage.public_id;
+      user.profileImageData = undefined;
+      user.profileImageMimeType = undefined;
+
+      await user.save();
+      deleteImage(oldPhotoPublicId)
+        .catch((error) => console.error('Previous Cloudinary profile image cleanup failed:', error));
     }
 
-    await user.save();
+    if (!req.file) await user.save();
 
     // Return updated user without password
     const updatedUser = user.toObject();
     delete updatedUser.password;
+    delete updatedUser.profilePhotoPublicId;
 
     res.json({
       success: true,
@@ -112,7 +112,7 @@ exports.updateProfile = async (req, res) => {
 // Create listing
 exports.createListing = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.userId).lean();
     if (!user || user.role !== 'merchant') {
       return res.status(403).json({ success: false, message: 'Only merchants can create listings' });
     }
@@ -140,6 +140,9 @@ exports.createListing = async (req, res) => {
     }
 
     const normalizedAvailableStatus = availableStatus === 'false' ? false : true;
+    const uploadedImage = req.file
+      ? await uploadImage(req.file.buffer, 'stock2serve/listings')
+      : null;
 
     const listing = await Listing.create({
       merchantId: user._id,
@@ -155,16 +158,16 @@ exports.createListing = async (req, res) => {
       pickupEnd,
       expiryTime: parsedExpiryTime,
       availableStatus: normalizedAvailableStatus,
-      image: req.file ? '/uploads/listings/' + req.file.filename : null,
-      imageData: req.file ? fs.readFileSync(req.file.path) : null,
-      imageMimeType: req.file?.mimetype || null,
+      image: uploadedImage?.secure_url || null,
+      imagePublicId: uploadedImage?.public_id || null,
       status: normalizedAvailableStatus ? 'active' : 'deactivated',
     });
 
     // The consumer feed needs the merchant fields that are normally supplied
     // by getActiveListings, so populate them before broadcasting.
     const listingForConsumers = await Listing.findById(listing._id)
-      .populate('merchantId', 'shopName businessCategory shopAddress city latitude longitude');
+      .populate('merchantId', 'shopName businessCategory shopAddress city latitude longitude')
+      .lean();
     if (listingForConsumers.status === 'active'
       && listingForConsumers.availableStatus
       && listingForConsumers.quantity > 0
@@ -176,7 +179,9 @@ exports.createListing = async (req, res) => {
         .catch((error) => console.error('New listing FCM notification failed:', error));
     }
 
-    res.status(201).json({ success: true, message: 'Listing created successfully', listing });
+    const listingResponse = listing.toObject();
+    delete listingResponse.imagePublicId;
+    res.status(201).json({ success: true, message: 'Listing created successfully', listing: listingResponse });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -185,7 +190,7 @@ exports.createListing = async (req, res) => {
 // Get merchant listings
 exports.getListings = async (req, res) => {
   try {
-    const listings = await Listing.find({ merchantId: req.userId }).sort({ createdAt: -1 });
+    const listings = await Listing.find({ merchantId: req.userId }).sort({ createdAt: -1 }).lean();
     res.json({ success: true, listings });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -195,7 +200,7 @@ exports.getListings = async (req, res) => {
 // Update listing
 exports.updateListing = async (req, res) => {
   try {
-    const listing = await Listing.findOne({ _id: req.params.id, merchantId: req.userId });
+    const listing = await Listing.findOne({ _id: req.params.id, merchantId: req.userId }).select('+imagePublicId');
     if (!listing) {
       return res.status(404).json({ success: false, message: 'Listing not found' });
     }
@@ -236,20 +241,22 @@ exports.updateListing = async (req, res) => {
     listing.status = status || (normalizedAvailableStatus ? 'active' : 'deactivated');
 
     if (req.file) {
-      if (listing.image) {
-        const oldPhotoPath = path.join(__dirname, '..', listing.image);
-        if (fs.existsSync(oldPhotoPath)) {
-          fs.unlinkSync(oldPhotoPath);
-        }
-      }
-      listing.image = '/uploads/listings/' + req.file.filename;
-      listing.imageData = fs.readFileSync(req.file.path);
-      listing.imageMimeType = req.file.mimetype;
+      const uploadedImage = await uploadImage(req.file.buffer, 'stock2serve/listings');
+      const oldImagePublicId = listing.imagePublicId;
+      listing.image = uploadedImage.secure_url;
+      listing.imagePublicId = uploadedImage.public_id;
+      listing.imageData = undefined;
+      listing.imageMimeType = undefined;
+
+      await listing.save();
+      deleteImage(oldImagePublicId)
+        .catch((error) => console.error('Previous Cloudinary listing image cleanup failed:', error));
     }
 
-    await listing.save();
+    if (!req.file) await listing.save();
     const listingForConsumers = await Listing.findById(listing._id)
-      .populate('merchantId', 'shopName businessCategory shopAddress city latitude longitude');
+      .populate('merchantId', 'shopName businessCategory shopAddress city latitude longitude')
+      .lean();
 
     // Edits and re-activations are meaningful changes for nearby consumers.
     // Socket.IO remains the visible-app channel and FCM covers background apps.
@@ -264,7 +271,9 @@ exports.updateListing = async (req, res) => {
         type: 'listing-updated',
       }).catch((error) => console.error('Listing update FCM notification failed:', error));
     }
-    res.json({ success: true, message: 'Listing updated successfully', listing });
+    const listingResponse = listing.toObject();
+    delete listingResponse.imagePublicId;
+    res.json({ success: true, message: 'Listing updated successfully', listing: listingResponse });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -273,19 +282,15 @@ exports.updateListing = async (req, res) => {
 // Delete listing
 exports.deleteListing = async (req, res) => {
   try {
-    const listing = await Listing.findOne({ _id: req.params.id, merchantId: req.userId });
+    const listing = await Listing.findOne({ _id: req.params.id, merchantId: req.userId }).select('+imagePublicId');
     if (!listing) {
       return res.status(404).json({ success: false, message: 'Listing not found' });
     }
 
-    if (listing.image) {
-      const imagePath = path.join(__dirname, '..', listing.image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    }
-
+    const imagePublicId = listing.imagePublicId;
     await listing.deleteOne();
+    deleteImage(imagePublicId)
+      .catch((error) => console.error('Cloudinary listing image cleanup failed:', error));
     res.json({ success: true, message: 'Listing deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -295,8 +300,8 @@ exports.deleteListing = async (req, res) => {
 // Dashboard stats
 exports.getDashboardStats = async (req, res) => {
   try {
-    const listings = await Listing.find({ merchantId: req.userId });
-    const claims = await Claim.find({ listingId: { $in: listings.map((item) => item._id) } });
+    const listings = await Listing.find({ merchantId: req.userId }).lean();
+    const claims = await Claim.find({ listingId: { $in: listings.map((item) => item._id) } }).lean();
     const activeListings = listings.filter((item) => item.status === 'active' && item.availableStatus).length;
     const expiredListings = listings.filter((item) => item.status === 'expired').length;
     const totalQuantity = listings.reduce((sum, item) => sum + (item.quantity || 0), 0);
@@ -322,13 +327,14 @@ exports.getDashboardStats = async (req, res) => {
 exports.getClaimHistory = async (req, res) => {
   try {
     if (req.userRole !== 'merchant') return res.status(403).json({ success: false, message: 'Only merchants can view claim history.' });
-    const listings = await Listing.find({ merchantId: req.userId }).select('_id');
+    const listings = await Listing.find({ merchantId: req.userId }).select('_id').lean();
     const claims = await Claim.find({ listingId: { $in: listings.map((listing) => listing._id) } })
       .populate('consumerId', 'fullName')
       // Older claims predate the per-reservation tokenExpiresAt field, so also
       // return the listing expiry as a backward-compatible display fallback.
       .populate('listingId', 'foodName category discountedPrice expiryTime')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     res.json({ success: true, claims });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

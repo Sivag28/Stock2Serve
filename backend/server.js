@@ -5,6 +5,7 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
 const dotenv = require('dotenv');
 const path = require('path');
 const { timingForClaim, isExpired } = require('./utils/claimTiming');
@@ -12,13 +13,32 @@ const { notifyPickupReminder } = require('./utils/notifications');
 
 dotenv.config();
 
+// Allow only this frontend during local development plus the exact deployed
+// frontend URLs configured in CORS_ORIGINS (comma-separated).
+const allowedOrigins = new Set([
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  ...String(process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+]);
+
+const corsOptions = {
+  origin(origin, callback) {
+    // Requests without an Origin header (for example health checks or curl)
+    // are not browser CORS requests and can continue normally.
+    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error('Origin is not allowed by CORS'));
+  },
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: true,
-    methods: ['GET', 'POST'],
-  },
+  cors: corsOptions,
 });
 
 // Controllers use this shared instance to notify every open consumer feed.
@@ -55,7 +75,12 @@ io.on('connection', (socket) => {
 });
 
 // Middleware
-app.use(cors());
+// Keep backend-hosted profile and listing images loadable by the separate
+// frontend origin while Helmet applies the remaining security headers.
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

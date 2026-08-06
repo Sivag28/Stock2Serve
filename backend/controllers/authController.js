@@ -2,6 +2,7 @@
 const User = require('../models/User');
 const generateJWT = require('../utils/generateJWT');
 const { sendPasswordResetOtp } = require('../utils/emailService');
+const { uploadImage, deleteImage } = require('../config/cloudinary');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -27,7 +28,7 @@ exports.register = async (req, res) => {
     } = req.body;
 
     // Check if user exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email }).lean();
     if (existingUser) {
       return res.status(400).json({ message: 'Email already registered' });
     }
@@ -62,9 +63,9 @@ exports.register = async (req, res) => {
 
     // Handle profile photo
     if (req.file) {
-      userData.profilePhoto = `/uploads/profile/${req.file.filename}`;
-      userData.profileImageData = fs.readFileSync(req.file.path);
-      userData.profileImageMimeType = req.file.mimetype;
+      const uploadedImage = await uploadImage(req.file.buffer, 'stock2serve/profiles');
+      userData.profilePhoto = uploadedImage.secure_url;
+      userData.profilePhotoPublicId = uploadedImage.public_id;
     }
 
     const user = new User(userData);
@@ -75,6 +76,7 @@ exports.register = async (req, res) => {
     const userObj = user.toObject();
     delete userObj.password;
     delete userObj.fcmTokens;
+    delete userObj.profilePhotoPublicId;
 
     res.status(201).json({
       success: true,
@@ -133,7 +135,7 @@ exports.login = async (req, res) => {
 // Get current user
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-password -fcmTokens');
+    const user = await User.findById(req.userId).select('-password -fcmTokens').lean();
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -147,7 +149,7 @@ exports.getMe = async (req, res) => {
 // Update consumer profile
 exports.updateConsumerProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.userId).select('+profilePhotoPublicId');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -170,7 +172,7 @@ exports.updateConsumerProfile = async (req, res) => {
 
     // Check if email is being changed and already exists
     if (email && email !== user.email) {
-      const existingUser = await User.findOne({ email });
+      const existingUser = await User.findOne({ email }).lean();
       if (existingUser) {
         return res.status(400).json({ success: false, message: 'Email already in use' });
       }
@@ -188,24 +190,25 @@ exports.updateConsumerProfile = async (req, res) => {
 
     // Handle profile photo upload
     if (req.file) {
-      // Delete old photo if exists
-      if (user.profilePhoto) {
-        const oldPhotoPath = path.join(__dirname, '..', user.profilePhoto);
-        if (fs.existsSync(oldPhotoPath)) {
-          fs.unlinkSync(oldPhotoPath);
-        }
-      }
-      user.profilePhoto = '/uploads/profile/' + req.file.filename;
-      user.profileImageData = fs.readFileSync(req.file.path);
-      user.profileImageMimeType = req.file.mimetype;
+      const uploadedImage = await uploadImage(req.file.buffer, 'stock2serve/profiles');
+      const oldPhotoPublicId = user.profilePhotoPublicId;
+      user.profilePhoto = uploadedImage.secure_url;
+      user.profilePhotoPublicId = uploadedImage.public_id;
+      user.profileImageData = undefined;
+      user.profileImageMimeType = undefined;
+
+      await user.save();
+      deleteImage(oldPhotoPublicId)
+        .catch((error) => console.error('Previous Cloudinary profile image cleanup failed:', error));
     }
 
-    await user.save();
+    if (!req.file) await user.save();
 
     // Return updated user without password
     const updatedUser = user.toObject();
     delete updatedUser.password;
     delete updatedUser.fcmTokens;
+    delete updatedUser.profilePhotoPublicId;
 
     res.json({
       success: true,
@@ -220,8 +223,13 @@ exports.updateConsumerProfile = async (req, res) => {
 exports.getProfileImage = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .select('+profileImageData +profileImageMimeType profilePhoto');
+      .select('+profileImageData +profileImageMimeType profilePhoto')
+      .lean();
     if (!user?.profilePhoto) return res.status(404).end();
+
+    if (/^https:\/\//i.test(user.profilePhoto)) {
+      return res.redirect(user.profilePhoto);
+    }
 
     if (user.profileImageData) {
       res.set('Content-Type', user.profileImageMimeType || 'application/octet-stream');
@@ -304,7 +312,7 @@ exports.registerFcmToken = async (req, res) => {
     const token = String(req.body?.token || '').trim();
     if (!token) return res.status(400).json({ success: false, message: 'An FCM token is required.' });
 
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.userId).lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
     if (user.role !== 'consumer') return res.status(403).json({ success: false, message: 'Only consumers can enable these notifications.' });
 

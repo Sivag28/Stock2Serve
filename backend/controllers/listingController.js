@@ -31,7 +31,7 @@ exports.getActiveListings = async (req, res) => {
           $maxDistance: NEARBY_RADIUS_METERS,
         },
       },
-    }).select('_id');
+    }).select('_id').lean();
 
     const listings = await Listing.find({
       status: 'active',
@@ -41,7 +41,8 @@ exports.getActiveListings = async (req, res) => {
       merchantId: { $in: nearbyMerchants.map((merchant) => merchant._id) },
     })
       .populate('merchantId', 'shopName businessCategory shopAddress city latitude longitude')
-      .sort({ expiryTime: 1 });
+      .sort({ expiryTime: 1 })
+      .lean();
     res.json({ success: true, listings });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -66,13 +67,13 @@ exports.getNearbyMerchants = async (req, res) => {
           $maxDistance: NEARBY_RADIUS_METERS,
         },
       },
-    }).select('shopName businessCategory shopAddress city latitude longitude profilePhoto openingTime closingTime');
+    }).select('shopName businessCategory shopAddress city latitude longitude profilePhoto openingTime closingTime').lean();
 
     const merchantIds = nearbyMerchants.map((merchant) => merchant._id);
     const listings = await Listing.find({
       merchantId: { $in: merchantIds }, status: 'active', availableStatus: true,
       quantity: { $gt: 0 }, expiryTime: { $gt: new Date() },
-    }).select('merchantId quantity foodType pickupStart pickupEnd expiryTime');
+    }).select('merchantId quantity foodType pickupStart pickupEnd expiryTime').lean();
 
     const byMerchant = new Map();
     listings.forEach((listing) => {
@@ -130,7 +131,7 @@ exports.getTrendingListings = async (req, res) => {
           $maxDistance: NEARBY_RADIUS_METERS,
         },
       },
-    }).select('_id');
+    }).select('_id').lean();
 
     const tenMinutesAgo = new Date(Date.now() - (10 * 60 * 1000));
     const merchantIds = nearbyMerchants.map((merchant) => merchant._id);
@@ -170,13 +171,16 @@ exports.getTrendingListings = async (req, res) => {
   }
 };
 
-// Listing image files are stored in MongoDB as well as the local uploads
-// folder. Serving through this endpoint makes them available from every app
-// server that uses the same database.
+// New images are redirected to Cloudinary. The MongoDB and local-upload
+// fallbacks keep every image created before this deployment available.
 exports.getListingImage = async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id).select('+imageData +imageMimeType image');
+    const listing = await Listing.findById(req.params.id).select('+imageData +imageMimeType image').lean();
     if (!listing?.image) return res.status(404).end();
+
+    if (/^https:\/\//i.test(listing.image)) {
+      return res.redirect(listing.image);
+    }
 
     if (listing.imageData) {
       res.set('Content-Type', listing.imageMimeType || 'application/octet-stream');

@@ -45,6 +45,13 @@ const listingSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  // Cloudinary's stable asset identifier, used when a listing image changes
+  // or the listing is deleted.
+  imagePublicId: {
+    type: String,
+    default: null,
+    select: false,
+  },
   // Kept in MongoDB so listings created from one development laptop can be
   // displayed by another laptop using the same database.
   imageData: {
@@ -88,5 +95,13 @@ const listingSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+// Serves the merchant's listings page, which filters by merchant and sorts by
+// newest first.
+listingSchema.index({ merchantId: 1, createdAt: -1 });
+
+// Serves nearby feed and map queries after nearby merchant IDs are found.
+// expiryTime is last because it is both filtered and sorted ascending.
+listingSchema.index({ merchantId: 1, status: 1, availableStatus: 1, expiryTime: 1 });
 
 module.exports = mongoose.model('Listing', listingSchema);

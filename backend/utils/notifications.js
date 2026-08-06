@@ -25,7 +25,7 @@ const notifyNearbyConsumersAboutListing = async (io, listing, notification = {})
         $centerSphere: [[longitude, latitude], NEARBY_RADIUS_METERS / EARTH_RADIUS_METERS],
       },
     },
-  }).select('_id fcmTokens');
+  }).select('_id fcmTokens').lean();
 
   const tokens = nearbyConsumers
     .filter((consumer) => !userHasForegroundSocket(io, consumer._id))
@@ -42,7 +42,7 @@ const notifyNearbyConsumersAboutListing = async (io, listing, notification = {})
 };
 
 const notifyPickupReminder = async (io, claim) => {
-  const consumer = await User.findById(claim.consumerId).select('_id fcmTokens');
+  const consumer = await User.findById(claim.consumerId).select('_id fcmTokens').lean();
   if (!consumer) return false;
 
   if (userHasForegroundSocket(io, consumer._id)) {
