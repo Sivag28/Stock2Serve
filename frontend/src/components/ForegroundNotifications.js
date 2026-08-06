@@ -28,12 +28,26 @@ const ForegroundNotifications = () => {
         </button>
       </div>
     ), { duration: Infinity, id: 'pickup-reminder' });
+    const showNearbyListing = ({ title, body }) => toast((notification) => (
+      <div className="flex items-center gap-3">
+        <span><strong>{title || 'New Food Available'}</strong><br />{body}</span>
+        <button
+          type="button"
+          onClick={() => toast.dismiss(notification.id)}
+          className="rounded-md bg-slate-800 px-2 py-1 text-xs font-semibold text-white hover:bg-slate-700"
+        >
+          Dismiss
+        </button>
+      </div>
+    ), { duration: 8000, id: 'nearby-listing' });
     const updateVisibility = () => socket.emit('app-visibility', { foreground: document.visibilityState === 'visible' });
     socket.on('pickup-reminder', showReminder);
+    socket.on('nearby-listing', showNearbyListing);
     socket.on('connect', updateVisibility);
     document.addEventListener('visibilitychange', updateVisibility);
     return () => {
       socket.off('pickup-reminder', showReminder);
+      socket.off('nearby-listing', showNearbyListing);
       socket.off('connect', updateVisibility);
       document.removeEventListener('visibilitychange', updateVisibility);
       socket.disconnect();

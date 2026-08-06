@@ -146,6 +146,32 @@ exports.getMe = async (req, res) => {
   }
 };
 
+// The latest permitted browser location is stored for proximity-based
+// background notifications while the consumer's browser is closed.
+exports.updateConsumerLocation = async (req, res) => {
+  try {
+    const latitude = Number(req.body?.latitude);
+    const longitude = Number(req.body?.longitude);
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90
+      || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      return res.status(400).json({ success: false, message: 'A valid latitude and longitude are required.' });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    if (user.role !== 'consumer') {
+      return res.status(403).json({ success: false, message: 'Only consumers can update this location.' });
+    }
+
+    user.latitude = latitude;
+    user.longitude = longitude;
+    await user.save();
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Unable to update location.' });
+  }
+};
+
 // Update consumer profile
 exports.updateConsumerProfile = async (req, res) => {
   try {

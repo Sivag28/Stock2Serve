@@ -32,6 +32,7 @@ export const AuthProvider = ({ children }) => {
   const [consumerLocation, setConsumerLocation] = useState(null);
   const [consumerLocationStatus, setConsumerLocationStatus] = useState('idle');
   const locationRequestRef = useRef(null);
+  const lastSyncedConsumerLocationRef = useRef(null);
 
   const savedConsumerLocation = useCallback(() => {
     const latitude = Number(user?.latitude);
@@ -40,6 +41,17 @@ export const AuthProvider = ({ children }) => {
       && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180
       ? { latitude, longitude } : null;
   }, [user]);
+
+  const syncConsumerLocation = useCallback((coordinates) => {
+    if (!coordinates || !locationChangedMeaningfully(lastSyncedConsumerLocationRef.current, coordinates)) return;
+    lastSyncedConsumerLocationRef.current = coordinates;
+    api.put('/auth/location', coordinates).catch((error) => {
+      // A future meaningful GPS update will retry; location failure must not
+      // prevent nearby listings or normal app use.
+      lastSyncedConsumerLocationRef.current = null;
+      console.warn('Consumer location sync failed:', error.message);
+    });
+  }, []);
 
   // Single shared source of truth for every consumer surface. GPS wins; the
   // signup/profile coordinates are only used when GPS cannot be obtained.
@@ -52,6 +64,7 @@ export const AuthProvider = ({ children }) => {
       const finish = (coordinates, status) => {
         setConsumerLocation((previous) => locationChangedMeaningfully(previous, coordinates) ? coordinates : previous);
         setConsumerLocationStatus(status);
+        if (status === 'gps') syncConsumerLocation(coordinates);
         locationRequestRef.current = null;
         resolve(coordinates);
       };
@@ -63,7 +76,7 @@ export const AuthProvider = ({ children }) => {
       );
     });
     return locationRequestRef.current;
-  }, [savedConsumerLocation, userRole]);
+  }, [savedConsumerLocation, syncConsumerLocation, userRole]);
 
   useEffect(() => {
     if (userRole !== 'consumer') { setConsumerLocation(null); setConsumerLocationStatus('idle'); return undefined; }
@@ -74,12 +87,13 @@ export const AuthProvider = ({ children }) => {
         const next = { latitude: coords.latitude, longitude: coords.longitude };
         setConsumerLocation((previous) => locationChangedMeaningfully(previous, next) ? next : previous);
         setConsumerLocationStatus('gps');
+        syncConsumerLocation(next);
       },
       () => {},
       { enableHighAccuracy: true, maximumAge: 5 * 60 * 1000 },
     );
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [refreshConsumerLocation, userRole]);
+  }, [refreshConsumerLocation, syncConsumerLocation, userRole]);
 
   useEffect(() => {
     if (token) {

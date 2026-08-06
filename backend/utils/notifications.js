@@ -27,9 +27,29 @@ const notifyNearbyConsumersAboutListing = async (io, listing, notification = {})
     },
   }).select('_id fcmTokens').lean();
 
-  const tokens = nearbyConsumers
-    .filter((consumer) => !userHasForegroundSocket(io, consumer._id))
+  const recipients = nearbyConsumers.map((consumer) => ({
+    ...consumer,
+    isForeground: userHasForegroundSocket(io, consumer._id),
+  }));
+  const foregroundConsumers = recipients.filter((consumer) => consumer.isForeground);
+  foregroundConsumers.forEach((consumer) => {
+    io.to(`consumer:${consumer._id}`).emit('nearby-listing', {
+      title: notification.title || '🍽️ New Food Available',
+      body: notification.body || 'A nearby merchant has added fresh surplus food. Go and view nearby offers.',
+      type: notification.type || 'new-food',
+      link: '/consumer/feed',
+      listingId: String(listing._id),
+    });
+  });
+
+  const tokens = recipients
+    .filter((consumer) => !consumer.isForeground)
     .flatMap((consumer) => consumer.fcmTokens || []);
+  console.log('Nearby listing notification recipients:', {
+    nearbyConsumers: recipients.length,
+    foregroundConsumers: foregroundConsumers.length,
+    backgroundTokens: tokens.length,
+  });
   const result = await sendPushNotifications(tokens, {
     title: '🍽️ New Food Available',
     body: 'A nearby merchant has added fresh surplus food. Go and view nearby offers.',
