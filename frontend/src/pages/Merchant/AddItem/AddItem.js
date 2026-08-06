@@ -49,11 +49,31 @@ const navItems = [{ path: '/merchant/dashboard', label: 'Dashboard', icon: <FaHo
 const IndianTimePicker = ({ name, value, onChange }) => {
   const parts = getIndianTimeParts(value);
   const update = (key, nextValue) => onChange({ target: { name, value: toIndianStoredTime(key === 'hour' ? nextValue : parts.hour, key === 'minute' ? nextValue : parts.minute, key === 'meridiem' ? nextValue : parts.meridiem) } });
-  return <div className="grid grid-cols-[1fr_1fr_1fr] gap-2">
-    <input type="number" min="1" max="12" value={parts.hour} onChange={(event) => update('hour', Math.min(12, Math.max(1, Number(event.target.value || 1))))} className="min-w-0 rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-amber-500" aria-label="Hour" />
-    <select value={parts.minute} onChange={(event) => update('minute', event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none focus:border-amber-500" aria-label="Minutes">{Array.from({ length: 60 }, (_, index) => <option key={index} value={String(index).padStart(2, '0')}>{String(index).padStart(2, '0')}</option>)}</select>
-    <select value={parts.meridiem} onChange={(event) => update('meridiem', event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none focus:border-amber-500"><option>AM</option><option>PM</option></select>
-  </div>;
+
+  const incHour = () => update('hour', Math.min(12, Number(parts.hour) + 1));
+  const decHour = () => update('hour', Math.max(1, Number(parts.hour) - 1));
+
+  return (
+    <div className="grid grid-cols-[1fr_1fr_1fr] gap-2">
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={decHour} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">−</button>
+        <input
+          type="number"
+          min="1"
+          max="12"
+          value={parts.hour}
+          onChange={(event) => update('hour', Math.min(12, Math.max(1, Number(event.target.value || 1))))}
+          className="min-w-0 rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-amber-500"
+          aria-label="Hour"
+        />
+        <button type="button" onClick={incHour} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">+</button>
+      </div>
+
+      <select value={parts.minute} onChange={(event) => update('minute', event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none focus:border-amber-500" aria-label="Minutes">{Array.from({ length: 60 }, (_, index) => <option key={index} value={String(index).padStart(2, '0')}>{String(index).padStart(2, '0')}</option>)}</select>
+
+      <select value={parts.meridiem} onChange={(event) => update('meridiem', event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none focus:border-amber-500"><option>AM</option><option>PM</option></select>
+    </div>
+  );
 };
 
 const MerchantAddItem = () => {
