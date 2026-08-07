@@ -5,11 +5,12 @@
 /* Shared presentation layer for authenticated consumer and merchant screens. */
 @layer base {
   html {
-    background: #f8fafc;
+    background: #f3e9df;
   }
 
   body {
     min-width: 320px;
+    background: #f3e9df;
     color: #1e293b;
     -webkit-font-smoothing: antialiased;
   }
@@ -23,20 +24,24 @@
     background:
       radial-gradient(circle at 0% 0%, rgba(251, 191, 36, 0.14), transparent 26rem),
       radial-gradient(circle at 100% 16%, rgba(251, 146, 60, 0.10), transparent 23rem),
-      #f8fafc;
+      #d57e26;
   }
 
-  .app-shell::before {
-    position: fixed;
-    z-index: -1;
-    inset: 0;
-    content: '';
-    pointer-events: none;
-    opacity: 0.42;
-    background-image: linear-gradient(rgba(148, 163, 184, 0.075) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.075) 1px, transparent 1px);
-    background-size: 32px 32px;
-    mask-image: linear-gradient(to bottom, black, transparent 75%);
-  }
+.app-shell::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  opacity: 0.65;
+
+background-image:
+  linear-gradient(rgba(148, 163, 184, 0.35) 4px, transparent 4px),
+  linear-gradient(90deg, rgba(148, 163, 184, 0.30) 4px, transparent 4px);
+
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to bottom, black, transparent 75%);
+}
 
   /* Slightly stronger grid texture on the consumer Find Food screen. */
   .app-shell.find-food-shell::before {
@@ -60,6 +65,19 @@
   .app-shell .rounded-2xl.bg-white.p-6 {
     border: 1px solid rgba(226, 232, 240, 0.86);
     box-shadow: 0 16px 36px -28px rgba(15, 23, 42, 0.40);
+  }
+
+  .find-food-shell article.group.overflow-hidden.rounded-3xl {
+    border-width: 2px;
+    border-color: rgba(28, 16, 10, 0.5);
+  }
+
+  .consumer-profile-shell .grid > aside {
+    border-color: rgba(120, 53, 15, 0.25);
+    background: rgba(255, 255, 255, 0.24);
+    box-shadow: 0 20px 40px -24px rgba(69, 32, 12, 0.34);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
 
   .app-shell input,
@@ -129,4 +147,211 @@
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
+}
+
+/* Mobile navigation: a compact action bar and a distinct, touch-friendly menu. */
+@media (max-width: 767px) {
+  .app-shell > nav > div:first-child {
+    min-height: 68px;
+    padding: 10px 16px;
+  }
+
+  .app-shell > nav > div:first-child > div:first-child {
+    gap: 12px;
+  }
+
+  .app-shell > nav > div:first-child > div:first-child > button {
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(180, 83, 9, 0.18);
+    border-radius: 14px;
+    background: #fffbeb;
+    color: #b45309;
+    font-size: 18px;
+    box-shadow: 0 5px 14px -10px rgba(120, 53, 15, 0.65);
+  }
+
+  .app-shell > nav > div:first-child h1 {
+    font-size: 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .app-shell > nav > div:first-child > button:last-child {
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(254, 202, 202, 0.9);
+    border-radius: 14px;
+    background: #fff1f2;
+    color: #dc2626;
+    box-shadow: none;
+  }
+
+  .app-shell > nav > div + div {
+    margin: 0;
+    padding: 14px 22px 18px;
+    border: 0;
+    border-top: 1px solid rgba(255, 237, 213, 0.16);
+    border-radius: 0 0 18px 18px;
+    background: #6b371a;
+    box-shadow: 0 12px 22px -18px rgba(15, 23, 42, 0.72);
+  }
+
+  .app-shell > nav > div + div a {
+    margin: 0;
+    padding: 13px 12px;
+    border-radius: 13px;
+    color: #334155;
+    font-weight: 700;
+  }
+
+  .app-shell > nav > div + div a:hover,
+  .app-shell > nav > div + div a:active {
+    background: #fff7ed;
+    color: #b45309;
+  }
+}
+
+/* Shared brown navigation theme with accessible contrast on every breakpoint. */
+.app-shell > nav {
+  border-color: rgba(92, 46, 20, 0.92);
+  background: linear-gradient(110deg, #5c331c, #a15624 55%, #f67f3a) !important;
+  color: #fffaf4;
+  box-shadow: 0 12px 28px -16px rgba(69, 32, 12, 0.9);
+}
+
+.app-shell > nav h1,
+.app-shell > nav p,
+.app-shell > nav a,
+.app-shell > nav button {
+  color: #fffaf4 !important;
+}
+
+.app-shell > nav a {
+  border: 1px solid transparent;
+}
+
+.app-shell > nav a:hover {
+  background: rgba(255, 247, 237, 0.17) !important;
+  color: #ffffff !important;
+}
+
+.app-shell > nav a.bg-amber-100 {
+  border-color: rgba(255, 237, 213, 0.55);
+  background: #fff7ed !important;
+  color: #78350f !important;
+  box-shadow: 0 4px 12px -8px rgba(42, 20, 8, 0.72);
+}
+
+.app-shell > nav button.bg-red-500 {
+  border: 1px solid rgba(255, 228, 230, 0.45);
+  background: #9f2525 !important;
+  color: #ffffff !important;
+}
+
+.app-shell > nav button.bg-red-500:hover {
+  background: #7f1d1d !important;
+}
+
+@media (max-width: 767px) {
+  .app-shell > nav > div:first-child > div:first-child > button {
+    border-color: rgba(255, 237, 213, 0.38);
+    background: rgba(255, 247, 237, 0.16);
+    color: #fffaf4;
+  }
+
+  .app-shell > nav > div:first-child > button:last-child {
+    border-color: rgba(255, 228, 230, 0.4);
+    background: #9f2525;
+    color: #ffffff;
+  }
+
+  .app-shell > nav > div + div {
+    border-color: rgba(255, 237, 213, 0.24);
+    background: #6b371a;
+  }
+
+  .app-shell > nav > div + div a,
+  .app-shell > nav > div + div a:hover,
+  .app-shell > nav > div + div a:active {
+    color: #fffaf4 !important;
+  }
+
+  .app-shell > nav > div + div a:hover,
+  .app-shell > nav > div + div a:active {
+    background: rgba(255, 247, 237, 0.16) !important;
+  }
+
+  .app-shell > nav > div + div a.bg-amber-100 {
+    border-color: rgba(255, 237, 213, 0.35);
+    background: #9a5b33 !important;
+    color: #ffffff !important;
+  }
+
+  /* Mark the current mobile route just like the desktop navigation. */
+  .find-food-shell > nav a[href="/consumer/feed"],
+  .nearby-page > nav a[href="/consumer/map"],
+  .consumer-claims-shell > nav a[href="/consumer/claims"],
+  .consumer-profile-shell > nav a[href="/consumer/profile"] {
+    border-color: rgba(255, 237, 213, 0.35);
+    background: #9a5b33 !important;
+    color: #ffffff !important;
+  }
+
+  /* Nearby Map renders an additional map drawer; keep it on the same theme. */
+  .nearby-page .nearby-drawer {
+    border: 1px solid rgba(255, 237, 213, 0.24);
+    border-radius: 0 0 18px 18px;
+    background: #6b371a;
+    box-shadow: 0 18px 28px -22px rgba(15, 23, 42, 0.65);
+  }
+
+  .nearby-page .nearby-drawer a {
+    margin: 2px 0;
+    border-radius: 12px;
+    color: #fffaf4;
+    font-weight: 700;
+  }
+
+  .nearby-page .nearby-drawer a[href="/consumer/map"] {
+    background: #9a5b33;
+    color: #ffffff;
+  }
+
+  /* Force every regular mobile drawer to use the Nearby Map drawer geometry. */
+  .app-shell > nav > div + div.md\:hidden {
+    margin: 0 !important;
+    padding: 14px 22px 18px !important;
+    border: 0 !important;
+    border-top: 1px solid rgba(255, 237, 213, 0.16) !important;
+    border-radius: 0 0 18px 18px !important;
+    background: #6b371a !important;
+    box-shadow: 0 12px 22px -18px rgba(15, 23, 42, 0.72) !important;
+  }
+
+  .app-shell > nav > div + div.md\:hidden > a {
+    display: block;
+    margin: 0 !important;
+    padding: 13px 12px !important;
+    border-radius: 13px;
+  }
+}
+
+html,
+body,
+#root {
+  background: #f7dfb7 !important;
+}
+
+.app-shell {
+  background: #f6d8bc !important;
+}
+
+.app-shell main {
+  background: transparent !important;
 }
