@@ -151,7 +151,7 @@ const ConsumerFeed = () => {
     try {
       const response = await api.post('/claims', { listingId: listing._id, quantity });
       const claim = response.data.claim;
-      await Swal.fire({ icon: 'success', title: 'Food claimed!', html: `<p><strong>Quantity:</strong> ${claim.quantity}</p><p>Show this pickup token at the counter:</p><p style="font-size:1.5rem;font-weight:700;letter-spacing:.12em">${claim.pickupToken}</p><p>Pickup: ${formatIndianTime(claim.pickupStart)} – ${formatIndianTime(claim.pickupEnd)} IST</p>`, confirmButtonText: 'View my claims', confirmButtonColor: '#d97706' });
+      await Swal.fire({ icon: 'success', title: 'Food claimed!', html: `<p><strong>Quantity:</strong> ${claim.quantity}</p><p>Your claim is confirmed! Your QR code has been sent to your registered email. Show the QR code/pickup token to the merchant when collecting your item.</p><p>Fallback pickup token:</p><p style="font-size:1.5rem;font-weight:700;letter-spacing:.12em">${claim.pickupToken}</p><p>Pickup: ${formatIndianTime(claim.pickupStart)} – ${formatIndianTime(claim.pickupEnd)} IST</p>`, confirmButtonText: 'View my claims', confirmButtonColor: '#d97706' });
       navigate('/consumer/claims');
     } catch (error) {
       Swal.fire({ icon: 'error', title: 'Unable to claim food', text: error.response?.data?.message || 'Please try another item.', confirmButtonColor: '#d97706' });

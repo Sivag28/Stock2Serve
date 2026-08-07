@@ -183,7 +183,20 @@ exports.verifyPickup = async (req, res) => {
       collectedAt: claim.collectedAt,
     });
     req.app.get('io').to(`merchant:${listing.merchantId}`).emit('merchant-claim-updated', { claimId: String(claim._id), status: 'collected', collectedAt: claim.collectedAt });
-    return res.json({ success: true, message: 'Pickup verified and marked as collected.', claim: { listingName: listing.foodName, customerName: claim.consumerId?.fullName || 'Customer' } });
+    return res.json({
+      success: true,
+      message: 'Pickup verified and marked as collected.',
+      claim: {
+        listingName: listing.foodName,
+        customerName: claim.consumerId?.fullName || 'Customer',
+        quantity: claim.quantity,
+        pricePerItem: listing.discountedPrice,
+        totalAmount: listing.discountedPrice * claim.quantity,
+        pickupStart: listing.pickupStart,
+        pickupEnd: listing.pickupEnd,
+        tokenExpiresAt: claim.tokenExpiresAt,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
