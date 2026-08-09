@@ -130,6 +130,11 @@ export default function Stock2ServeAssistant() {
   };
 
   const goHome = () => { setCategory(null); setAnswer(null); };
+
+  // The assistant answers consumer food, claim, and pickup questions only.
+  // Keep it out of merchant and unauthenticated screens entirely.
+  if (!isAuthenticated || user?.role !== 'consumer') return null;
+
   return <div className="s2s-assistant">
     {open && <section className="s2s-assistant-panel" role="dialog" aria-label="Stock2Serve Assistant">
       <header><div><span className="s2s-assistant-mark"><FaUtensils /></span><div><strong>Stock2Serve Assistant</strong><small>Quick answers, right here</small></div></div><button onClick={() => setOpen(false)} aria-label="Close assistant"><FaTimes /></button></header>
