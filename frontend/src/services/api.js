@@ -21,7 +21,10 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // A failed sign-in is an expected 401. Let Login handle it so the user
+    // sees its SweetAlert instead of immediately reloading this same page.
+    const isLoginRequest = error.config?.url?.replace(/\?.*$/, '').endsWith('/auth/login');
+    if (error.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem('token');
       delete api.defaults.headers.common['Authorization'];
       window.location.href = '/login';
