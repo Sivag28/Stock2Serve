@@ -34,6 +34,50 @@ const MerchantHistory = () => {
     return () => { socket.off('merchant-claim-created', onClaimCreated); socket.off('merchant-claim-updated', onClaimUpdated); socket.disconnect(); };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    const insertPhones = async () => {
+      try {
+        const resp = await api.get('/merchant/claim-history');
+        const claimsForMap = resp.data.claims || [];
+        const map = {};
+        claimsForMap.forEach((c) => {
+          const key = `${c.consumerId?.fullName || ''}||${formatIndianDateTime(c.createdAt)}`;
+          map[key] = c.consumerId?.mobileNumber || '—';
+        });
+        const tables = document.querySelectorAll('table');
+        let table = null;
+        for (const t of tables) {
+          const th = t.querySelector('thead tr th');
+          if (th && th.textContent.trim() === 'Consumer') { table = t; break; }
+        }
+        if (!table) return;
+        const theadRow = table.querySelector('thead tr');
+        if (theadRow && !theadRow.querySelector('.phone-header')) {
+          const th = document.createElement('th');
+          th.className = 'p-4 font-bold phone-header';
+          th.textContent = 'Phone';
+          theadRow.insertBefore(th, theadRow.children[1]);
+        }
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach((tr) => {
+          if (tr.querySelector('.phone-cell')) return;
+          const consumerCell = tr.querySelector('td');
+          const claimedCell = Array.from(tr.querySelectorAll('td')).find(td => td.textContent.includes('IST'));
+          const key = `${consumerCell?.textContent.trim() || ''}||${claimedCell?.textContent.replace(' IST','').trim() || ''}`;
+          const phone = map[key] || '—';
+          const td = document.createElement('td');
+          td.className = 'p-4 text-slate-600 phone-cell';
+          td.textContent = phone;
+          tr.insertBefore(td, tr.children[1]);
+        });
+      } catch (e) {
+        // ignore
+      }
+    };
+    insertPhones();
+  }, [filteredClaims]);
+
   const logoutAndLeave = async () => {
     if (await logout()) navigate('/login');
   };

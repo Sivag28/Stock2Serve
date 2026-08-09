@@ -329,7 +329,7 @@ exports.getClaimHistory = async (req, res) => {
     if (req.userRole !== 'merchant') return res.status(403).json({ success: false, message: 'Only merchants can view claim history.' });
     const listings = await Listing.find({ merchantId: req.userId }).select('_id').lean();
     const claims = await Claim.find({ listingId: { $in: listings.map((listing) => listing._id) } })
-      .populate('consumerId', 'fullName')
+      .populate('consumerId', 'fullName mobileNumber')
       // Older claims predate the per-reservation tokenExpiresAt field, so also
       // return the listing expiry as a backward-compatible display fallback.
       .populate('listingId', 'foodName category discountedPrice expiryTime')
