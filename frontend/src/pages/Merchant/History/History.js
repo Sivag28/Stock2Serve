@@ -35,7 +35,7 @@ const MerchantHistory = () => {
   }, []);
 
   useEffect(() => {
-    let mounted = true;
+    // let mounted = true;
     const insertPhones = async () => {
       try {
         const resp = await api.get('/merchant/claim-history');
