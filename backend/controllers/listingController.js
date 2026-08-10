@@ -106,13 +106,14 @@ exports.getNearbyMerchants = async (req, res) => {
     const listings = await Listing.find({
       merchantId: { $in: merchantIds }, status: 'active', availableStatus: true,
       quantity: { $gt: 0 }, expiryTime: { $gt: new Date() },
-    }).select('merchantId quantity foodType pickupStart pickupEnd expiryTime').lean();
+    }).select('merchantId foodName quantity foodType pickupStart pickupEnd expiryTime').lean();
 
     const byMerchant = new Map();
     listings.forEach((listing) => {
       const key = String(listing.merchantId);
-      const current = byMerchant.get(key) || { totalMeals: 0, foodTypes: new Set(), pickupStarts: [], pickupEnds: [], nextExpiry: null };
+      const current = byMerchant.get(key) || { totalMeals: 0, foodItems: [], foodTypes: new Set(), pickupStarts: [], pickupEnds: [], nextExpiry: null };
       current.totalMeals += listing.quantity;
+      current.foodItems.push({ name: listing.foodName, quantity: listing.quantity });
       current.foodTypes.add(listing.foodType);
       current.pickupStarts.push(listing.pickupStart);
       current.pickupEnds.push(listing.pickupEnd);
@@ -134,6 +135,7 @@ exports.getNearbyMerchants = async (req, res) => {
         openingTime: merchant.openingTime,
         closingTime: merchant.closingTime,
         totalMeals: availability.totalMeals,
+        foodItems: availability.foodItems,
         foodTypes: [...availability.foodTypes],
         pickupStart: availability.pickupStarts.sort()[0],
         pickupEnd: availability.pickupEnds.sort().slice(-1)[0],

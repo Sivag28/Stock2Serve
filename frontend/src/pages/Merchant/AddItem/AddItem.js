@@ -191,7 +191,7 @@ const MerchantAddItem = () => {
       <nav className="border-b bg-white shadow-sm"><div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 md:px-6"><div className="flex items-center gap-4"><button className="text-2xl text-slate-600 md:hidden" onClick={() => setMobileMenuOpen((open) => !open)}>{mobileMenuOpen ? <FaTimes /> : <FaBars />}</button><div className="hidden h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-200 sm:flex"><FaLeaf /></div><div><h1 className="text-xl font-extrabold md:text-1xl">STOCK2<span className="text-amber-600">SERVE</span></h1><p className="hidden text-xs text-slate-500 md:block">Welcome, {user?.fullName}</p></div></div><div className="hidden items-center gap-2 md:flex">{navItems.map((item) => <Link key={item.path} to={item.path} className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${location.pathname === item.path ? 'bg-amber-100 text-amber-700' : 'text-slate-600 hover:bg-slate-100'}`}>{item.icon}{item.label}</Link>)}<button onClick={logoutAndLeave} className="ml-2 flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"><FaSignOutAlt /> Logout</button></div><button onClick={logoutAndLeave} className="rounded-lg bg-red-500 px-3 py-2 text-white md:hidden"><FaSignOutAlt /></button></div>{mobileMenuOpen && <div className="border-t bg-white px-4 py-2 md:hidden">{navItems.map((item) => <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50">{item.icon}{item.label}</Link>)}</div>}</nav>
 
       <main className="mx-auto max-w-[1400px] p-4 pb-10 md:p-6 md:pb-12">
-        <div className="mb-6 rounded-3xl border border-amber-900/25 bg-white p-6 shadow-xl shadow-slate-900/[0.05]">
+        <div className="add-listing-header mb-6 rounded-3xl border bg-white p-6 shadow-xl shadow-slate-900/[0.05]">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-amber-100 p-3 text-amber-700">
               <FaPlus />
@@ -206,7 +206,7 @@ const MerchantAddItem = () => {
         {loadingListing ? (
           <div className="rounded-2xl border border-amber-900/25 bg-white p-10 text-center text-slate-500 shadow-sm">Loading listing...</div>
         ) : (
-        <form onSubmit={handleSubmit} className="space-y-6 rounded-3xl border border-amber-900/45 bg-white p-6 shadow-xl shadow-slate-900/[0.05] md:p-8">
+        <form onSubmit={handleSubmit} className="add-listing-form space-y-6 rounded-3xl border bg-white p-6 shadow-xl shadow-slate-900/[0.05] md:p-8">
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
               <span className="mb-2 block text-sm font-semibold text-slate-700">Food Name</span>

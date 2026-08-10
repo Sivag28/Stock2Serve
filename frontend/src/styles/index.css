@@ -360,6 +360,157 @@ body,
   background: transparent !important;
 }
 
+/* Keep the two Add Food Listing panels outlined above the shared card style. */
+.app-shell main > .add-listing-header,
+.app-shell main > .add-listing-form,
+.app-shell main > .merchant-inventory-panel {
+  border: 1px solid #8b5a2b !important;
+}
+
+/* Verify pickup: outline the scanner panel and both supporting cards. */
+.app-shell main > .grid.gap-6 > section.rounded-3xl.bg-white,
+.app-shell main > .grid.gap-6 > aside.space-y-6 > section.rounded-3xl.bg-white {
+  border: 1px solid #8b5a2b !important;
+}
+
+/* Merchant profile: keep each primary panel in the same brown outlined system. */
+.merchant-profile-header,
+.merchant-profile-summary,
+.merchant-profile-details {
+  border: 1px solid #8b5a2b !important;
+}
+
+/* Merchant dashboard: outline the primary data and action cards. */
+.merchant-dashboard > section.border,
+.merchant-dashboard article.border {
+  border-color: #8b5a2b !important;
+}
+
+/* Consumer claims: outline the page panel and each claimed-food card. */
+.consumer-claims-shell main > section.rounded-3xl.border,
+.consumer-claims-shell article.rounded-3xl.border {
+  border-color: #8b5a2b !important;
+}
+
+/* Give each claim status a clear, card-level visual priority. */
+.consumer-claims-shell article.rounded-3xl > div:first-child > span.rounded-full {
+  display: inline-flex;
+  min-width: 6.8rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid currentColor;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.12);
+}
+
+.consumer-claims-shell article.rounded-3xl > div:first-child > span.rounded-full::before {
+  content: '●';
+  font-size: 0.65rem;
+}
+
+.consumer-claims-shell article.rounded-3xl > div:first-child > span.bg-emerald-100 {
+  border-color: #334155 !important;
+  background: #475569 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 14px rgba(71, 85, 105, 0.3);
+}
+
+.consumer-claims-shell article.rounded-3xl > div:first-child > span.bg-slate-100 {
+  border-color: #047857 !important;
+  background: #059669 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 14px rgba(5, 150, 105, 0.32);
+}
+
+.consumer-claims-shell article.rounded-3xl > div:first-child > span.bg-red-100 {
+  border-color: #b91c1c !important;
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 14px rgba(220, 38, 38, 0.3);
+}
+
+/* Consumer profile: outline the header, summary, and details panels. */
+.consumer-profile-shell > .relative > header,
+.consumer-profile-shell > .relative > .grid > aside,
+.consumer-profile-shell > .relative > .grid > main {
+  border-color: #8b5a2b !important;
+}
+
+/* Find food: keep the main discovery panels and offer cards consistent. */
+.find-food-shell main > section.relative.rounded-3xl.border,
+.find-food-shell main > section.rounded-2xl.border,
+.find-food-shell main > .rounded-3xl.border,
+.find-food-shell main article.rounded-3xl.border {
+  border-color: #8b5a2b !important;
+}
+
+/* Consumer navigation: desktop-only page icons, matching the merchant nav. */
+@media (min-width: 768px) {
+  .app-shell nav .hidden.md\:flex a[href="/consumer/feed"]::before { content: '🍽️'; }
+  .app-shell nav .hidden.md\:flex a[href="/consumer/map"]::before { content: '📍'; }
+  .app-shell nav .hidden.md\:flex a[href="/consumer/claims"]::before { content: '📋'; }
+  .app-shell nav .hidden.md\:flex a[href="/consumer/profile"]::before { content: '👤'; }
+
+  .app-shell nav .hidden.md\:flex a[href^="/consumer/"]::before {
+    display: inline-block;
+    margin-right: 0.45rem;
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+}
+
+/* Merchant mobile drawer: make the current page as clear as in the consumer drawer. */
+@media (max-width: 767px) {
+  [data-route="/merchant/dashboard"] .app-shell > nav > div + div.md\:hidden > a[href="/merchant/dashboard"],
+  [data-route="/merchant/add-item"] .app-shell > nav > div + div.md\:hidden > a[href="/merchant/add-item"],
+  [data-route="/merchant/inventory"] .app-shell > nav > div + div.md\:hidden > a[href="/merchant/inventory"],
+  [data-route="/merchant/verify-pickup"] .app-shell > nav > div + div.md\:hidden > a[href="/merchant/verify-pickup"],
+  [data-route="/merchant/history"] .app-shell > nav > div + div.md\:hidden > a[href="/merchant/history"],
+  [data-route="/merchant/profile"] .app-shell > nav > div + div.md\:hidden > a[href="/merchant/profile"] {
+    border: 1px solid rgba(255, 237, 213, 0.45) !important;
+    background: #9a5b33 !important;
+    color: #ffffff !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+}
+
+/* Keep the offer ribbon distinct from food imagery on every listing card. */
+.border-red-900\/20.bg-red-600 {
+  right: 1rem;
+  border-right-width: 1px;
+  border-color: #78350f !important;
+  border-radius: 1rem;
+}
+
+/* Make availability easy to scan without losing it against a food photograph. */
+.absolute.bottom-4.right-4.z-10.rounded-full.bg-emerald-500 {
+  display: flex !important;
+  min-width: 7rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 0.9rem;
+  background: #047857 !important;
+  padding: 0.55rem 0.85rem;
+  font-size: 1rem !important;
+  line-height: 1.1;
+  box-shadow: 0 6px 16px rgba(6, 78, 59, 0.5);
+}
+
+.absolute.bottom-4.right-4.z-10.rounded-full.bg-emerald-500::before {
+  content: 'QUANTITY LEFT';
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  opacity: 0.9;
+}
+
 @media (max-width: 767px) {
   .app-shell > nav > div + div.md\:hidden > a.bg-amber-100 {
     border: 1px solid rgba(255, 237, 213, 0.35) !important;

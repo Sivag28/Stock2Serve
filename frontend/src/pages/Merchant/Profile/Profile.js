@@ -260,7 +260,7 @@ const MerchantProfile = () => {
       <nav className="border-b bg-white shadow-sm"><div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 md:px-6"><div className="flex items-center gap-4"><button className="text-2xl text-slate-600 md:hidden" onClick={() => setMobileMenuOpen((open) => !open)}>{mobileMenuOpen ? <FaTimes /> : <FaBars />}</button><div className="hidden h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-200 sm:flex"><FaLeaf /></div><div><h1 className="text-xl font-extrabold md:text-1xl">STOCK2<span className="text-amber-600">SERVE</span></h1><p className="hidden text-xs text-slate-500 md:block">Welcome, {user?.fullName}</p></div></div><div className="hidden items-center gap-2 md:flex">{navItems.map((item) => <Link key={item.path} to={item.path} className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${location.pathname === item.path ? 'bg-amber-100 text-amber-700' : 'text-slate-600 hover:bg-slate-100'}`}>{item.icon}{item.label}</Link>)}<button onClick={logoutAndLeave} className="ml-2 flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"><FaSignOutAlt /> Logout</button></div><button onClick={logoutAndLeave} className="rounded-lg bg-red-500 px-3 py-2 text-white md:hidden"><FaSignOutAlt /></button></div>{mobileMenuOpen && <div className="border-t bg-white px-4 py-2 md:hidden">{navItems.map((item) => <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50">{item.icon}{item.label}</Link>)}</div>}</nav>
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.12),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(148,163,184,0.06),_transparent_35%)]" />
       <div className="relative mx-auto max-w-[1600px] px-4 py-8 lg:px-10">
-        <header className="mb-8 rounded-[2rem] border border-amber-900/25 bg-white/90 p-6 shadow-2xl shadow-slate-300/20 backdrop-blur-lg">
+        <header className="merchant-profile-header mb-8 rounded-[2rem] border bg-white/90 p-6 shadow-2xl shadow-slate-300/20 backdrop-blur-lg">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Merchant Profile</p>
@@ -271,7 +271,7 @@ const MerchantProfile = () => {
           </div>
         </header>
         <div className="grid gap-8 xl:grid-cols-[420px_1fr]">
-          <aside className="rounded-[2rem] border border-amber-900/25 bg-amber-700/10 p-6 shadow-xl shadow-amber-200/20">
+          <aside className="merchant-profile-summary rounded-[2rem] border bg-amber-700/10 p-6 shadow-xl shadow-amber-200/20">
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="relative h-36 w-36 overflow-hidden rounded-full border-4 border-white bg-amber-50 shadow-lg shadow-amber-200/40">
                 {previewUrl ? (
@@ -304,7 +304,7 @@ const MerchantProfile = () => {
               </div>
             </div>
           </aside>
-          <main className="rounded-[2rem] border border-amber-900/25 bg-white p-6 shadow-xl shadow-slate-300/20">
+          <main className="merchant-profile-details rounded-[2rem] border bg-white p-6 shadow-xl shadow-slate-300/20">
             <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
               <div>
                 <p className="text-sm uppercase tracking-[0.24em] text-amber-600">Profile details</p>
