@@ -1,14 +1,18 @@
 import React from 'react';
 import { formatIndianTime } from '../../utils/formatDate';
+import { getDiscountPercentage } from '../../utils/discount';
 import { FaClock, FaStore } from 'react-icons/fa';
 
 const ListingCard = ({ listing, onEdit, onDelete, onToggleStatus }) => {
+  const offerPercentage = getDiscountPercentage(listing.originalPrice, listing.discountedPrice);
+
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-xl font-bold text-slate-900">{listing.foodName}</h3>
           <p className="text-sm text-slate-500">{listing.category || 'General'}</p>
+          {offerPercentage && <p className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">{offerPercentage} off</p>}
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${listing.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
           {listing.status}
