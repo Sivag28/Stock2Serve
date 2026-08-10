@@ -59,6 +59,25 @@ function WalkingRouteCamera({ coordinates }) {
       padding: [40, 40],
       maxZoom: 16,
     });
+
+    const distanceMeters = coordinates.slice(1).reduce((total, point, index) => {
+      const [previousLongitude, previousLatitude] = coordinates[index];
+      const [longitude, latitude] = point;
+      return total + L.latLng(previousLatitude, previousLongitude).distanceTo(L.latLng(latitude, longitude));
+    }, 0);
+    const durationMinutes = Math.max(1, Math.ceil(distanceMeters / 83.33));
+    const distanceLabel = distanceMeters >= 1000 ? `${(distanceMeters / 1000).toFixed(1)} km` : `${Math.round(distanceMeters)} m`;
+    const routeControl = L.control({ position: 'topleft' });
+    routeControl.onAdd = () => {
+      const container = L.DomUtil.create('div', 'nearby-route-summary');
+      container.innerHTML = `<strong><span>🚶</span> Walking route</strong><p><span>📍</span> ${distanceLabel}</p><p><span>◷</span> About ${durationMinutes} min</p><small>Follow the highlighted route to the merchant</small>`;
+      L.DomEvent.disableClickPropagation(container);
+      L.DomEvent.disableScrollPropagation(container);
+      return container;
+    };
+    routeControl.addTo(map);
+
+    return () => map.removeControl(routeControl);
   }, [coordinates, map]);
   return null;
 }
@@ -92,6 +111,7 @@ const NearbyMap = () => {
     try {
       const response = await api.get(`/listings/merchants/${selected._id}/walking-route`, { params: position });
       setWalkingRoute(response.data.route);
+      setSelected(null);
     } catch (error) {
       setRouteError(error.response?.data?.message || 'Unable to find a walking route right now.');
     } finally {
