@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import api from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { getIndianTimeParts, toIndianDateTimeInput, toIndianExpiryDateTime, toIndianStoredTime } from '../../../utils/formatDate';
+import ProcessingIndicator from '../../../components/ProcessingIndicator/ProcessingIndicator';
 
 const initialForm = {
   foodName: '',
@@ -186,6 +187,7 @@ const MerchantAddItem = () => {
 
   return (
     <div className="app-shell min-h-screen bg-stone-50">
+      {submitting && <ProcessingIndicator message={editingListing ? '🍽️ Updating listing...' : '🍽️ Adding food item...'} />}
       <nav className="border-b bg-white shadow-sm"><div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 md:px-6"><div className="flex items-center gap-4"><button className="text-2xl text-slate-600 md:hidden" onClick={() => setMobileMenuOpen((open) => !open)}>{mobileMenuOpen ? <FaTimes /> : <FaBars />}</button><div className="hidden h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-200 sm:flex"><FaLeaf /></div><div><h1 className="text-xl font-extrabold md:text-1xl">STOCK2<span className="text-amber-600">SERVE</span></h1><p className="hidden text-xs text-slate-500 md:block">Welcome, {user?.fullName}</p></div></div><div className="hidden items-center gap-2 md:flex">{navItems.map((item) => <Link key={item.path} to={item.path} className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${location.pathname === item.path ? 'bg-amber-100 text-amber-700' : 'text-slate-600 hover:bg-slate-100'}`}>{item.icon}{item.label}</Link>)}<button onClick={logoutAndLeave} className="ml-2 flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"><FaSignOutAlt /> Logout</button></div><button onClick={logoutAndLeave} className="rounded-lg bg-red-500 px-3 py-2 text-white md:hidden"><FaSignOutAlt /></button></div>{mobileMenuOpen && <div className="border-t bg-white px-4 py-2 md:hidden">{navItems.map((item) => <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50">{item.icon}{item.label}</Link>)}</div>}</nav>
 
       <main className="mx-auto max-w-[1400px] p-4 pb-10 md:p-6 md:pb-12">
