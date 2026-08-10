@@ -111,6 +111,7 @@ const NearbyMap = () => {
     try {
       const response = await api.get(`/listings/merchants/${selected._id}/walking-route`, { params: position });
       setWalkingRoute(response.data.route);
+      setListMode(false);
       setSelected(null);
     } catch (error) {
       setRouteError(error.response?.data?.message || 'Unable to find a walking route right now.');
