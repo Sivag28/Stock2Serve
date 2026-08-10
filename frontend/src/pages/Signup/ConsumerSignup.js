@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../context/AuthContext';
+import ProcessingIndicator from '../../components/ProcessingIndicator/ProcessingIndicator';
 import { FaCamera, FaLocationArrow, FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
 import { validateEmail, validatePassword, validatePhone, validatePincode } from '../../utils/validators';
 
@@ -189,7 +190,9 @@ const ConsumerSignup = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+    <>
+      {loading && <ProcessingIndicator message="🍽️ Creating your account..." />}
+      <form onSubmit={handleSubmit} className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
       {/* Profile Photo */}
       <div className="flex flex-col items-center">
         <div 
@@ -468,7 +471,8 @@ const ConsumerSignup = () => {
           background: #b45309;
         }
       `}</style>
-    </form>
+      </form>
+    </>
   );
 };
 

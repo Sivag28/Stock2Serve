@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import api from '../../services/api';
+import ProcessingIndicator from '../../components/ProcessingIndicator/ProcessingIndicator';
 
 const ResetPassword = () => {
   const location = useLocation();
@@ -32,6 +33,7 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen bg-stone-50 px-4 py-10 sm:px-6">
+      {submitting && <ProcessingIndicator message="🍽️ Resetting password..." />}
       <main className="mx-auto w-full max-w-md rounded-3xl border border-amber-100 bg-white p-8 shadow-xl shadow-amber-100/50 sm:p-10">
         <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 font-extrabold text-white">S2S</div>
         <h1 className="mt-6 text-3xl font-bold text-slate-900">Reset password</h1>

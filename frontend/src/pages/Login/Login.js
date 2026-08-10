@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {  FaStore, FaUser, FaChevronDown, FaEye, FaEyeSlash } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { useAuth } from '../../context/AuthContext';
+import ProcessingIndicator from '../../components/ProcessingIndicator/ProcessingIndicator';
 
 const Login = () => {
   const [role, setRole] = useState('consumer');
@@ -50,6 +51,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-yellow-700 bg-stone-50 px-4 py-6 sm:px-6 lg:px-10 lg:py-7 xl:px-14">
+      {submitting && <ProcessingIndicator message="🍽️ Signing you in..." />}
                 <header className="mb-6 flex items-center justify-between sm:mb-8">
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-lg font-extrabold text-white shadow-lg shadow-amber-200">S2S</div>
