@@ -8,7 +8,6 @@ import ClaimCountdowns from '../../../components/ClaimCountdowns';
 import { useAuth } from '../../../context/AuthContext';
 
 const claimImageUrl = (listing) => listing?.image ? `${API_URL}/api/listings/${listing._id}/image` : null;
-const formatClaimDate = (date) => date ? new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(date)) : 'Date unavailable';
 const formatClaimDateTime = (date) => date ? new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(date)) : 'Time unavailable';
 
 const MyClaims = () => {
