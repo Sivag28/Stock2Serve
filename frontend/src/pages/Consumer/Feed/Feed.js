@@ -85,6 +85,17 @@ const ConsumerFeed = () => {
     fetchListings(sharedConsumerLocation, { announceNewSinceLastVisit: false });
   }, [fetchListings, sharedConsumerLocation]);
 
+  // Listings created before their pickup start are deliberately absent from
+  // the response. Recheck while this screen is open so one becomes visible
+  // as soon as its window opens, without requiring the consumer to reload.
+  useEffect(() => {
+    if (locationStatus !== 'ready') return undefined;
+    const refreshId = window.setInterval(() => {
+      fetchListings(undefined, { announceNewSinceLastVisit: false });
+    }, 15 * 1000);
+    return () => window.clearInterval(refreshId);
+  }, [fetchListings, locationStatus]);
+
   useEffect(() => {
     if (authLoading) return undefined;
     refreshConsumerLocation().then((coordinates) => {

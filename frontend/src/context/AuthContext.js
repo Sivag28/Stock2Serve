@@ -53,12 +53,19 @@ export const AuthProvider = ({ children }) => {
     });
   }, []);
 
-  // Single shared source of truth for every consumer surface. GPS wins; the
-  // signup/profile coordinates are only used when GPS cannot be obtained.
+  // Single shared source of truth for every consumer surface. A saved profile
+  // location is intentional (and may have been entered manually for a
+  // delivery-area test), so never silently replace it with browser GPS.
+  // Consumers without saved coordinates still use GPS as a fallback.
   const refreshConsumerLocation = useCallback(() => {
     if (userRole !== 'consumer') return Promise.resolve(null);
     if (locationRequestRef.current) return locationRequestRef.current;
     const fallback = savedConsumerLocation();
+    if (fallback) {
+      setConsumerLocation((previous) => locationChangedMeaningfully(previous, fallback) ? fallback : previous);
+      setConsumerLocationStatus('profile');
+      return Promise.resolve(fallback);
+    }
     setConsumerLocationStatus('requesting');
     locationRequestRef.current = new Promise((resolve) => {
       const finish = (coordinates, status) => {
@@ -81,7 +88,10 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (userRole !== 'consumer') { setConsumerLocation(null); setConsumerLocationStatus('idle'); return undefined; }
     refreshConsumerLocation();
-    if (!navigator.geolocation) return undefined;
+    // Once a profile location exists it remains the coordinate used by Find
+    // Food. The Profile page's "Use Current Location" action explicitly
+    // updates it when the consumer wants to move the search area.
+    if (savedConsumerLocation() || !navigator.geolocation) return undefined;
     const watchId = navigator.geolocation.watchPosition(
       ({ coords }) => {
         const next = { latitude: coords.latitude, longitude: coords.longitude };
@@ -93,7 +103,7 @@ export const AuthProvider = ({ children }) => {
       { enableHighAccuracy: true, maximumAge: 5 * 60 * 1000 },
     );
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [refreshConsumerLocation, syncConsumerLocation, userRole]);
+  }, [refreshConsumerLocation, savedConsumerLocation, syncConsumerLocation, userRole]);
 
   useEffect(() => {
     if (token) {

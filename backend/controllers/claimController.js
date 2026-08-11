@@ -1,6 +1,6 @@
 const Claim = require('../models/Claim');
 const Listing = require('../models/Listing');
-const { timingForListing, timingForClaim, isExpired } = require('../utils/claimTiming');
+const { timingForListing, timingForClaim, isExpired, isPickupWindowActive } = require('../utils/claimTiming');
 const { sendClaimConfirmationEmail } = require('../utils/emailService');
 
 const generatePickupToken = () => `S2S-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
@@ -21,9 +21,12 @@ exports.createClaim = async (req, res) => {
     if (!listing) return res.status(409).json({ success: false, message: 'This item is no longer available.' });
 
     const listingTiming = timingForListing(listing);
-    if (isExpired(listingTiming)) {
+    // The listing query protects stock against concurrent claims. Check the
+    // pickup interval immediately afterwards, then restore the reservation if
+    // it was made before the window opened or after it closed.
+    if (!isPickupWindowActive(listing) || isExpired(listingTiming)) {
       await Listing.findByIdAndUpdate(listing._id, { $inc: { quantity } });
-      return res.status(409).json({ success: false, message: 'The pickup or token window has already expired.' });
+      return res.status(409).json({ success: false, message: 'This item is available only during its pickup window.' });
     }
 
     let claim;

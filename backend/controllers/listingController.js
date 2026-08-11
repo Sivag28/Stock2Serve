@@ -12,6 +12,34 @@ const validCoordinate = (value, min, max) => {
   return Number.isFinite(coordinate) && coordinate >= min && coordinate <= max;
 };
 
+const getFeedCoordinates = async (req) => {
+  const { latitude, longitude } = req.query;
+  if (!validCoordinate(latitude, -90, 90) || !validCoordinate(longitude, -180, 180)) {
+    return null;
+  }
+
+  const requestedCoordinates = {
+    latitude: Number(latitude),
+    longitude: Number(longitude),
+  };
+
+  if (req.userRole !== 'consumer' || !req.userId) {
+    return requestedCoordinates;
+  }
+
+  const consumer = await User.findById(req.userId)
+    .select('latitude longitude')
+    .lean();
+  if (consumer && validCoordinate(consumer.latitude, -90, 90) && validCoordinate(consumer.longitude, -180, 180)) {
+    return {
+      latitude: Number(consumer.latitude),
+      longitude: Number(consumer.longitude),
+    };
+  }
+
+  return requestedCoordinates;
+};
+
 const distanceBetweenCoordinates = (fromLatitude, fromLongitude, toLatitude, toLongitude) => {
   const radians = (value) => value * Math.PI / 180;
   const latitudeDelta = radians(toLatitude - fromLatitude);
@@ -41,15 +69,15 @@ const findNearbyMerchants = async (latitude, longitude, select) => {
 
 exports.getActiveListings = async (req, res) => {
   try {
-    const { latitude, longitude } = req.query;
-    if (!validCoordinate(latitude, -90, 90) || !validCoordinate(longitude, -180, 180)) {
+    const coordinates = await getFeedCoordinates(req);
+    if (!coordinates) {
       return res.status(400).json({
         success: false,
         message: 'A valid latitude and longitude are required to find nearby offers.',
       });
     }
 
-    const nearbyMerchants = await findNearbyMerchants(latitude, longitude, '_id latitude longitude');
+    const nearbyMerchants = await findNearbyMerchants(coordinates.latitude, coordinates.longitude, '_id latitude longitude');
 
     const listings = (await Listing.find({
       status: 'active',
@@ -60,7 +88,7 @@ exports.getActiveListings = async (req, res) => {
     })
       .populate('merchantId', 'shopName businessCategory shopAddress city latitude longitude')
       .sort({ expiryTime: 1 })
-      .lean()).filter(isPickupWindowActive);
+      .lean()).filter((listing) => isPickupWindowActive(listing));
     res.json({ success: true, listings });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -104,18 +132,18 @@ exports.getMerchantWalkingRoute = async (req, res) => {
 // same active/available/nearby rules against MongoDB.
 exports.getNearbyMerchants = async (req, res) => {
   try {
-    const { latitude, longitude } = req.query;
-    if (!validCoordinate(latitude, -90, 90) || !validCoordinate(longitude, -180, 180)) {
+    const coordinates = await getFeedCoordinates(req);
+    if (!coordinates) {
       return res.status(400).json({ success: false, message: 'A valid latitude and longitude are required.' });
     }
 
-    const nearbyMerchants = await findNearbyMerchants(latitude, longitude, 'shopName businessCategory shopAddress city latitude longitude profilePhoto openingTime closingTime');
+    const nearbyMerchants = await findNearbyMerchants(coordinates.latitude, coordinates.longitude, 'shopName businessCategory shopAddress city latitude longitude profilePhoto openingTime closingTime');
 
     const merchantIds = nearbyMerchants.map((merchant) => merchant._id);
     const listings = (await Listing.find({
       merchantId: { $in: merchantIds }, status: 'active', availableStatus: true,
       quantity: { $gt: 0 }, expiryTime: { $gt: new Date() },
-    }).select('merchantId foodName quantity foodType pickupStart pickupEnd expiryTime').lean()).filter(isPickupWindowActive);
+    }).select('merchantId foodName quantity foodType pickupStart pickupEnd expiryTime').lean()).filter((listing) => isPickupWindowActive(listing));
 
     const byMerchant = new Map();
     listings.forEach((listing) => {
@@ -159,15 +187,15 @@ exports.getNearbyMerchants = async (req, res) => {
 
 exports.getTrendingListings = async (req, res) => {
   try {
-    const { latitude, longitude } = req.query;
-    if (!validCoordinate(latitude, -90, 90) || !validCoordinate(longitude, -180, 180)) {
+    const coordinates = await getFeedCoordinates(req);
+    if (!coordinates) {
       return res.status(400).json({
         success: false,
         message: 'A valid latitude and longitude are required to find trending offers.',
       });
     }
 
-    const nearbyMerchants = await findNearbyMerchants(latitude, longitude, '_id latitude longitude');
+    const nearbyMerchants = await findNearbyMerchants(coordinates.latitude, coordinates.longitude, '_id latitude longitude');
 
     const tenMinutesAgo = new Date(Date.now() - (10 * 60 * 1000));
     const merchantIds = nearbyMerchants.map((merchant) => merchant._id);
@@ -201,7 +229,7 @@ exports.getTrendingListings = async (req, res) => {
       },
       { $sort: { claimCount: -1, foodName: 1 } },
       { $project: { _id: 1, foodName: 1, shopName: 1, shopAddress: 1, city: 1, pickupStart: 1, pickupEnd: 1, expiryTime: 1, claimCount: 1 } },
-    ]).then((items) => items.filter(isPickupWindowActive).slice(0, 3));
+    ]).then((items) => items.filter((item) => isPickupWindowActive(item)).slice(0, 3));
 
     res.json({ success: true, trending });
   } catch (error) {

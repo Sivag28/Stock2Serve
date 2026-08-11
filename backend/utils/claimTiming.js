@@ -35,18 +35,16 @@ const isPickupWindowActive = (listing, now = Date.now()) => {
   if (!listing?.pickupStart || !listing?.pickupEnd || !listing?.expiryTime) return false;
 
   const currentTime = new Date(now);
-  const today = indianDateFor(currentTime);
-  const yesterday = indianDateFor(new Date(currentTime.getTime() - (24 * 60 * 60 * 1000)));
-  const tokenExpiresAt = new Date(listing.expiryTime).getTime();
-  if (Number.isNaN(tokenExpiresAt) || tokenExpiresAt <= currentTime.getTime()) return false;
+  const timing = timingForListing(listing);
+  const tokenExpiresAt = timing.tokenExpiresAt?.getTime();
+  if (!timing.pickupWindowStart || !timing.pickupWindowEnd
+    || Number.isNaN(tokenExpiresAt) || tokenExpiresAt <= currentTime.getTime()) return false;
 
-  return [today, yesterday].some((datePart) => {
-    const pickupWindowStart = indianDateTime(datePart, listing.pickupStart);
-    const pickupWindowEnd = indianDateTime(datePart, listing.pickupEnd);
-    if (pickupWindowEnd <= pickupWindowStart) pickupWindowEnd.setDate(pickupWindowEnd.getDate() + 1);
-    return pickupWindowStart.getTime() <= currentTime.getTime()
-      && pickupWindowEnd.getTime() > currentTime.getTime();
-  });
+  // The date belongs to the listing, not to the request.  Using today's date
+  // here made a future listing look active whenever its clock time matched
+  // today's pickup window.
+  return timing.pickupWindowStart.getTime() <= currentTime.getTime()
+    && timing.pickupWindowEnd.getTime() > currentTime.getTime();
 };
 
 module.exports = { timingForListing, timingForClaim, isExpired, isPickupWindowActive };
