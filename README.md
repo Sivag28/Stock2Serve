@@ -744,17 +744,6 @@ The following are intentionally future enhancements, not claims about the curren
 - Modeling reservation state, expiry, and pickup verification as explicit domain lifecycle rules.
 - Making pragmatic trade-offs while documenting production gaps clearly.
 
-## Contributing
-
-Contributions are welcome once repository governance is established. Until then, use a focused branch and keep each pull request scoped to one concern.
-
-1. Fork the repository and create a branch: `git checkout -b feat/short-description`.
-2. Install dependencies in both `backend` and `frontend`.
-3. Keep secrets out of commits; use local `.env` files only.
-4. Follow the existing controller/model/component separation and preserve authorization checks server-side.
-5. Add or update tests when test infrastructure is introduced; manually verify the relevant role flows today.
-6. Open a PR explaining the user impact, architectural choice, validation performed, and screenshots for UI changes.
-
 ## License
 
 No license file is currently present in this repository. Do not assume open-source reuse rights until the project owner adds an explicit license (for example, MIT, Apache-2.0, or a proprietary license appropriate to the intended distribution).
