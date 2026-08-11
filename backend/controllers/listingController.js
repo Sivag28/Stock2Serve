@@ -3,6 +3,7 @@ const User = require('../models/User');
 const fs = require('fs');
 const path = require('path');
 const { getWalkingRoute } = require('../config/openRouteService');
+const { isPickupWindowActive } = require('../utils/claimTiming');
 
 const NEARBY_RADIUS_METERS = 10 * 1000;
 
@@ -34,7 +35,7 @@ exports.getActiveListings = async (req, res) => {
       },
     }).select('_id').lean();
 
-    const listings = await Listing.find({
+    const listings = (await Listing.find({
       status: 'active',
       availableStatus: true,
       quantity: { $gt: 0 },
@@ -43,7 +44,7 @@ exports.getActiveListings = async (req, res) => {
     })
       .populate('merchantId', 'shopName businessCategory shopAddress city latitude longitude')
       .sort({ expiryTime: 1 })
-      .lean();
+      .lean()).filter(isPickupWindowActive);
     res.json({ success: true, listings });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -103,10 +104,10 @@ exports.getNearbyMerchants = async (req, res) => {
     }).select('shopName businessCategory shopAddress city latitude longitude profilePhoto openingTime closingTime').lean();
 
     const merchantIds = nearbyMerchants.map((merchant) => merchant._id);
-    const listings = await Listing.find({
+    const listings = (await Listing.find({
       merchantId: { $in: merchantIds }, status: 'active', availableStatus: true,
       quantity: { $gt: 0 }, expiryTime: { $gt: new Date() },
-    }).select('merchantId foodName quantity foodType pickupStart pickupEnd expiryTime').lean();
+    }).select('merchantId foodName quantity foodType pickupStart pickupEnd expiryTime').lean()).filter(isPickupWindowActive);
 
     const byMerchant = new Map();
     listings.forEach((listing) => {
@@ -192,13 +193,15 @@ exports.getTrendingListings = async (req, res) => {
           shopName: { $first: '$merchant.shopName' },
           shopAddress: { $first: '$merchant.shopAddress' },
           city: { $first: '$merchant.city' },
+          pickupStart: { $first: '$listing.pickupStart' },
+          pickupEnd: { $first: '$listing.pickupEnd' },
+          expiryTime: { $first: '$listing.expiryTime' },
           claimCount: { $sum: 1 },
         },
       },
       { $sort: { claimCount: -1, foodName: 1 } },
-      { $limit: 3 },
-      { $project: { _id: 1, foodName: 1, shopName: 1, shopAddress: 1, city: 1, claimCount: 1 } },
-    ]);
+      { $project: { _id: 1, foodName: 1, shopName: 1, shopAddress: 1, city: 1, pickupStart: 1, pickupEnd: 1, expiryTime: 1, claimCount: 1 } },
+    ]).then((items) => items.filter(isPickupWindowActive).slice(0, 3));
 
     res.json({ success: true, trending });
   } catch (error) {

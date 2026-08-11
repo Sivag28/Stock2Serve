@@ -31,4 +31,15 @@ const isExpired = (timing, now = Date.now()) => (
   || Boolean(timing.tokenExpiresAt && timing.tokenExpiresAt.getTime() <= now)
 );
 
-module.exports = { timingForListing, timingForClaim, isExpired };
+const isPickupWindowActive = (listing, now = Date.now()) => {
+  const timing = timingForListing(listing);
+  return Boolean(
+    timing.pickupWindowStart
+    && timing.pickupWindowEnd
+    && timing.pickupWindowStart.getTime() <= now
+    && timing.pickupWindowEnd.getTime() > now
+    && (!timing.tokenExpiresAt || timing.tokenExpiresAt.getTime() > now),
+  );
+};
+
+module.exports = { timingForListing, timingForClaim, isExpired, isPickupWindowActive };

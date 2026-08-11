@@ -138,6 +138,11 @@ const ConsumerFeed = () => {
     };
   }, [authLoading, fetchListings, fetchTrending, refreshConsumerLocation, user]);
 
+  useEffect(() => {
+    const timer = setInterval(() => fetchListings(undefined, { announceNewSinceLastVisit: false }), 60000);
+    return () => clearInterval(timer);
+  }, [fetchListings]);
+
   const claimFood = async (listing) => {
     const confirmation = await Swal.fire({
       icon: 'question', title: `Claim ${listing.foodName}?`,
