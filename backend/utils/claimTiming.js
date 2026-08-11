@@ -32,14 +32,21 @@ const isExpired = (timing, now = Date.now()) => (
 );
 
 const isPickupWindowActive = (listing, now = Date.now()) => {
-  const timing = timingForListing(listing);
-  return Boolean(
-    timing.pickupWindowStart
-    && timing.pickupWindowEnd
-    && timing.pickupWindowStart.getTime() <= now
-    && timing.pickupWindowEnd.getTime() > now
-    && (!timing.tokenExpiresAt || timing.tokenExpiresAt.getTime() > now),
-  );
+  if (!listing?.pickupStart || !listing?.pickupEnd || !listing?.expiryTime) return false;
+
+  const currentTime = new Date(now);
+  const today = indianDateFor(currentTime);
+  const yesterday = indianDateFor(new Date(currentTime.getTime() - (24 * 60 * 60 * 1000)));
+  const tokenExpiresAt = new Date(listing.expiryTime).getTime();
+  if (Number.isNaN(tokenExpiresAt) || tokenExpiresAt <= currentTime.getTime()) return false;
+
+  return [today, yesterday].some((datePart) => {
+    const pickupWindowStart = indianDateTime(datePart, listing.pickupStart);
+    const pickupWindowEnd = indianDateTime(datePart, listing.pickupEnd);
+    if (pickupWindowEnd <= pickupWindowStart) pickupWindowEnd.setDate(pickupWindowEnd.getDate() + 1);
+    return pickupWindowStart.getTime() <= currentTime.getTime()
+      && pickupWindowEnd.getTime() > currentTime.getTime();
+  });
 };
 
 module.exports = { timingForListing, timingForClaim, isExpired, isPickupWindowActive };

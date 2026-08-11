@@ -64,6 +64,13 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
+    const nextLatitude = latitude === undefined || latitude === '' ? Number(user.latitude) : Number(latitude);
+    const nextLongitude = longitude === undefined || longitude === '' ? Number(user.longitude) : Number(longitude);
+    if (!Number.isFinite(nextLatitude) || nextLatitude < -90 || nextLatitude > 90
+      || !Number.isFinite(nextLongitude) || nextLongitude < -180 || nextLongitude > 180) {
+      return res.status(400).json({ success: false, message: 'A valid latitude and longitude are required.' });
+    }
+
     // Update fields
     user.fullName = fullName || user.fullName;
     user.email = email || user.email;
@@ -73,8 +80,9 @@ exports.updateProfile = async (req, res) => {
     user.shopAddress = shopAddress || user.shopAddress;
     user.city = city || user.city;
     user.pincode = pincode || user.pincode;
-    user.latitude = latitude || user.latitude;
-    user.longitude = longitude || user.longitude;
+    user.latitude = nextLatitude;
+    user.longitude = nextLongitude;
+    user.location = { type: 'Point', coordinates: [nextLongitude, nextLatitude] };
     user.openingTime = openingTime || user.openingTime;
     user.closingTime = closingTime || user.closingTime;
 

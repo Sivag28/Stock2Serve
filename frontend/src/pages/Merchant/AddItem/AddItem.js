@@ -14,13 +14,15 @@ const initialForm = {
   originalPrice: '',
   discountedPrice: '',
   quantity: '',
-  calendar: toIndianDateTimeInput(new Date()).split('T')[0],
+  calendar: '',
   pickupStart: '20:00',
   pickupEnd: '22:00',
   tokenexpiryTime: '22:00',
   foodType: 'veg',
   availableStatus: 'true',
 };
+
+const currentIndianCalendarDate = () => toIndianDateTimeInput(new Date()).split('T')[0];
 
 const businessCategories = [
   { value: 'bakery', label: 'Bakery' },
@@ -84,7 +86,7 @@ const MerchantAddItem = () => {
   const { listingId } = useParams();
   const [editingListing, setEditingListing] = useState(location.state?.listing || null);
   const [loadingListing, setLoadingListing] = useState(Boolean(listingId && !location.state?.listing));
-  const [form, setForm] = useState(() => ({ ...initialForm, category: user?.businessCategory || '' }));
+  const [form, setForm] = useState(() => ({ ...initialForm, calendar: currentIndianCalendarDate(), category: user?.businessCategory || '' }));
   const [image, setImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
