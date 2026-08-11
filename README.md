@@ -225,11 +225,11 @@ sequenceDiagram
   participant DB as MongoDB
   U->>SPA: Register or sign in
   SPA->>API: POST /auth/register or /auth/login
-  API->>DB: Find/create user; bcrypt hash or compare password
+  API->>DB: Find/create user, bcrypt hash or compare password
   API-->>SPA: JWT + safe user profile
-  SPA->>SPA: Store token; attach Bearer header
+  SPA->>SPA: Store token, attach Bearer header
   SPA->>API: Protected request / Socket.IO handshake
-  API->>API: Verify JWT; set user ID + role
+  API->>API: Verify JWT, set user ID + role
   API-->>SPA: Authorized response or 401/403
 ```
 
@@ -247,12 +247,12 @@ sequenceDiagram
   participant RT as Socket.IO / FCM
   M->>SPA: Enter listing and optional image
   SPA->>API: POST /merchant/listing (multipart + JWT)
-  API->>API: Verify merchant role; validate required fields
+  API->>API: Verify merchant role, validate required fields
   API->>C: Stream image from Multer memory buffer
   C-->>API: HTTPS URL + public ID
   API->>DB: Create listing owned by merchant
   API->>DB: Populate merchant display fields
-  API->>RT: Broadcast listing-created; alert eligible nearby consumers
+  API->>RT: Broadcast listing-created, alert eligible nearby consumers
   API-->>SPA: 201 Created
 ```
 
