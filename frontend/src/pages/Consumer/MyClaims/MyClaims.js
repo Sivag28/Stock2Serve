@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaBars, FaClipboardList, FaClock, FaLeaf, FaMapMarkerAlt, FaSignOutAlt, FaTimes, FaUtensils } from 'react-icons/fa';
 import { io } from 'socket.io-client';
@@ -14,13 +14,22 @@ const MyClaims = () => {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Socket events can arrive while the initial claims request is still in
+  // flight. Keep those updates so the response cannot overwrite newer state.
+  const pendingUpdates = useRef(new Map());
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const nav = [{ path: '/consumer/feed', label: 'Find food' }, { path: '/consumer/map', label: 'Nearby map' }, { path: '/consumer/claims', label: 'My claims' }, { path: '/consumer/profile', label: 'Profile' }];
 
   const updateClaim = useCallback((claimId, status, collectedAt) => {
-    setClaims((current) => current.map((claim) => (claim._id === claimId ? { ...claim, status, ...(collectedAt ? { collectedAt } : {}) } : claim)));
+    const normalizedId = String(claimId);
+    pendingUpdates.current.set(normalizedId, { status, collectedAt });
+    setClaims((current) => current.map((claim) => (
+      String(claim._id) === normalizedId
+        ? { ...claim, status, ...(collectedAt ? { collectedAt } : {}) }
+        : claim
+    )));
   }, []);
 
   const expireClaim = useCallback(async (claimId) => {
@@ -33,10 +42,20 @@ const MyClaims = () => {
   }, [updateClaim]);
 
   useEffect(() => {
-    api.get('/claims/my').then((response) => setClaims(response.data.claims || [])).catch(() => setClaims([])).finally(() => setLoading(false));
     const socket = io(API_URL, { auth: { token: localStorage.getItem('token') }, transports: ['websocket', 'polling'] });
     const handleClaimUpdated = ({ claimId, status, collectedAt }) => updateClaim(claimId, status, collectedAt);
     socket.on('claim-updated', handleClaimUpdated);
+
+    api.get('/claims/my').then((response) => {
+      const fetchedClaims = response.data.claims || [];
+      setClaims(fetchedClaims.map((claim) => {
+        const update = pendingUpdates.current.get(String(claim._id));
+        return update
+          ? { ...claim, status: update.status, ...(update.collectedAt ? { collectedAt: update.collectedAt } : {}) }
+          : claim;
+      }));
+    }).catch(() => setClaims([])).finally(() => setLoading(false));
+
     return () => { socket.off('claim-updated', handleClaimUpdated); socket.disconnect(); };
   }, [updateClaim]);
 
