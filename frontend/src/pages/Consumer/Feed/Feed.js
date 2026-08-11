@@ -53,9 +53,9 @@ const ConsumerFeed = () => {
     }
   }, []);
 
-  const fetchListings = useCallback(async (coordinates = consumerLocation.current, { announceNewSinceLastVisit = true } = {}) => {
+  const fetchListings = useCallback(async (coordinates = consumerLocation.current, { announceNewSinceLastVisit = true, background = false } = {}) => {
     if (!coordinates) return;
-    setLoading(true);
+    if (!background) setLoading(true);
     try {
       const response = await api.get('/listings', { params: coordinates });
       const nearbyListings = response.data.listings || [];
@@ -73,7 +73,7 @@ const ConsumerFeed = () => {
       if (seenKey) localStorage.setItem(seenKey, String(Date.now()));
     }
     catch (error) { Swal.fire({ icon: 'error', title: 'Unable to load offers', text: error.response?.data?.message || 'Please refresh and try again.', confirmButtonColor: '#d97706' }); }
-    finally { setLoading(false); }
+    finally { if (!background) setLoading(false); }
   }, [fetchTrending, user?._id, user?.id]);
 
   // The provider updates this value when the device location changes, so the
@@ -82,7 +82,7 @@ const ConsumerFeed = () => {
     if (!sharedConsumerLocation) return;
     consumerLocation.current = sharedConsumerLocation;
     setLocationStatus('ready');
-    fetchListings(sharedConsumerLocation, { announceNewSinceLastVisit: false });
+    fetchListings(sharedConsumerLocation, { announceNewSinceLastVisit: false, background: false });
   }, [fetchListings, sharedConsumerLocation]);
 
   // Listings created before their pickup start are deliberately absent from
@@ -91,7 +91,7 @@ const ConsumerFeed = () => {
   useEffect(() => {
     if (locationStatus !== 'ready') return undefined;
     const refreshId = window.setInterval(() => {
-      fetchListings(undefined, { announceNewSinceLastVisit: false });
+      fetchListings(undefined, { announceNewSinceLastVisit: false, background: true });
     }, 15 * 1000);
     return () => window.clearInterval(refreshId);
   }, [fetchListings, locationStatus]);
@@ -114,14 +114,14 @@ const ConsumerFeed = () => {
     // Broadcasts go to every consumer. Re-querying keeps the 10 km rule as
     // the source of truth rather than appending a potentially distant offer.
     const handleListingCreated = (listing) => {
-      fetchListings(undefined, { announceNewSinceLastVisit: false });
+      fetchListings(undefined, { announceNewSinceLastVisit: false, background: true });
       if (isWithinNearbyRadius(consumerLocation.current, listing?.merchantId)) {
         toast.success('New food available near you!');
       }
     };
 
     const handleListingUpdated = (listing) => {
-      fetchListings(undefined, { announceNewSinceLastVisit: false });
+      fetchListings(undefined, { announceNewSinceLastVisit: false, background: true });
       if (isWithinNearbyRadius(consumerLocation.current, listing?.merchantId)) {
         toast.success('A nearby food offer was updated!');
       }
@@ -150,7 +150,7 @@ const ConsumerFeed = () => {
   }, [authLoading, fetchListings, fetchTrending, refreshConsumerLocation, user]);
 
   useEffect(() => {
-    const timer = setInterval(() => fetchListings(undefined, { announceNewSinceLastVisit: false }), 60000);
+    const timer = setInterval(() => fetchListings(undefined, { announceNewSinceLastVisit: false, background: true }), 60000);
     return () => clearInterval(timer);
   }, [fetchListings]);
 
@@ -173,7 +173,7 @@ const ConsumerFeed = () => {
       navigate('/consumer/claims');
     } catch (error) {
       Swal.fire({ icon: 'error', title: 'Unable to claim food', text: error.response?.data?.message || 'Please try another item.', confirmButtonColor: '#d97706' });
-      fetchListings();
+      fetchListings(undefined, { background: true });
     } finally { setClaimingId(null); }
   };
 
