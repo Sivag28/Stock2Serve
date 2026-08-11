@@ -14,7 +14,7 @@
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-Realtime-010101?logo=socketdotio&logoColor=white)](https://socket.io/)
 [![License](https://img.shields.io/badge/license-not%20specified-lightgrey)](#license)
 
-[Architecture](#system-architecture) · [API](#api-reference) · [Setup](#installation) · [Deployment](#deployment) · [Contributing](#contributing)
+[Architecture](#system-architecture) · [API](#api-reference) · [Setup](#installation) · [Deployment](#deployment)
 
 </div>
 
