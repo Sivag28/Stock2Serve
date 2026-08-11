@@ -12,6 +12,33 @@ const validCoordinate = (value, min, max) => {
   return Number.isFinite(coordinate) && coordinate >= min && coordinate <= max;
 };
 
+const distanceBetweenCoordinates = (fromLatitude, fromLongitude, toLatitude, toLongitude) => {
+  const radians = (value) => value * Math.PI / 180;
+  const latitudeDelta = radians(toLatitude - fromLatitude);
+  const longitudeDelta = radians(toLongitude - fromLongitude);
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(radians(fromLatitude)) * Math.cos(radians(toLatitude)) * Math.sin(longitudeDelta / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const findNearbyMerchants = async (latitude, longitude, select) => {
+  const latitudeNumber = Number(latitude);
+  const longitudeNumber = Number(longitude);
+  const latitudeDelta = NEARBY_RADIUS_METERS / 111320;
+  const longitudeDelta = NEARBY_RADIUS_METERS / (111320 * Math.max(Math.cos(latitudeNumber * Math.PI / 180), 0.01));
+  const merchants = await User.find({
+    role: 'merchant',
+    latitude: { $gte: latitudeNumber - latitudeDelta, $lte: latitudeNumber + latitudeDelta },
+    longitude: { $gte: longitudeNumber - longitudeDelta, $lte: longitudeNumber + longitudeDelta },
+  }).select(select).lean();
+  return merchants.filter((merchant) => distanceBetweenCoordinates(
+    latitudeNumber,
+    longitudeNumber,
+    Number(merchant.latitude),
+    Number(merchant.longitude),
+  ) <= NEARBY_RADIUS_METERS);
+};
+
 exports.getActiveListings = async (req, res) => {
   try {
     const { latitude, longitude } = req.query;
@@ -22,18 +49,7 @@ exports.getActiveListings = async (req, res) => {
       });
     }
 
-    const nearbyMerchants = await User.find({
-      role: 'merchant',
-      location: {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [Number(longitude), Number(latitude)],
-          },
-          $maxDistance: NEARBY_RADIUS_METERS,
-        },
-      },
-    }).select('_id').lean();
+    const nearbyMerchants = await findNearbyMerchants(latitude, longitude, '_id latitude longitude');
 
     const listings = (await Listing.find({
       status: 'active',
@@ -93,15 +109,7 @@ exports.getNearbyMerchants = async (req, res) => {
       return res.status(400).json({ success: false, message: 'A valid latitude and longitude are required.' });
     }
 
-    const nearbyMerchants = await User.find({
-      role: 'merchant',
-      location: {
-        $near: {
-          $geometry: { type: 'Point', coordinates: [Number(longitude), Number(latitude)] },
-          $maxDistance: NEARBY_RADIUS_METERS,
-        },
-      },
-    }).select('shopName businessCategory shopAddress city latitude longitude profilePhoto openingTime closingTime').lean();
+    const nearbyMerchants = await findNearbyMerchants(latitude, longitude, 'shopName businessCategory shopAddress city latitude longitude profilePhoto openingTime closingTime');
 
     const merchantIds = nearbyMerchants.map((merchant) => merchant._id);
     const listings = (await Listing.find({
@@ -159,15 +167,7 @@ exports.getTrendingListings = async (req, res) => {
       });
     }
 
-    const nearbyMerchants = await User.find({
-      role: 'merchant',
-      location: {
-        $near: {
-          $geometry: { type: 'Point', coordinates: [Number(longitude), Number(latitude)] },
-          $maxDistance: NEARBY_RADIUS_METERS,
-        },
-      },
-    }).select('_id').lean();
+    const nearbyMerchants = await findNearbyMerchants(latitude, longitude, '_id latitude longitude');
 
     const tenMinutesAgo = new Date(Date.now() - (10 * 60 * 1000));
     const merchantIds = nearbyMerchants.map((merchant) => merchant._id);

@@ -4,6 +4,7 @@ const Listing = require('../models/Listing');
 const Claim = require('../models/Claim');
 const { notifyNearbyConsumersAboutListing } = require('../utils/notifications');
 const { uploadImage, deleteImage } = require('../config/cloudinary');
+const { isPickupWindowActive } = require('../utils/claimTiming');
 
 const parseIndianExpiryTime = ({ calendar, tokenexpiryTime, expiryTime }) => {
   const hasCalendarDate = /^\d{4}-\d{2}-\d{2}$/.test(String(calendar || ''));
@@ -179,7 +180,7 @@ exports.createListing = async (req, res) => {
     if (listingForConsumers.status === 'active'
       && listingForConsumers.availableStatus
       && listingForConsumers.quantity > 0
-      && listingForConsumers.expiryTime > new Date()) {
+      && isPickupWindowActive(listingForConsumers)) {
       req.app.get('io').emit('listing-created', listingForConsumers);
       // Socket.IO remains the foreground channel. FCM is only sent to nearby
       // consumers who do not currently have a live authenticated socket.
@@ -271,7 +272,7 @@ exports.updateListing = async (req, res) => {
     if (listingForConsumers.status === 'active'
       && listingForConsumers.availableStatus
       && listingForConsumers.quantity > 0
-      && listingForConsumers.expiryTime > new Date()) {
+      && isPickupWindowActive(listingForConsumers)) {
       req.app.get('io').emit('listing-updated', listingForConsumers);
       notifyNearbyConsumersAboutListing(req.app.get('io'), listingForConsumers, {
         title: 'Nearby Food Offer Updated',
