@@ -712,19 +712,6 @@ Recommended test strategy:
 | E2E | Merchant creates → consumer claims → merchant verifies pickup. | Playwright/Cypress with seeded test accounts. |
 | Security | CORS, unauthenticated access, IDOR, upload edge cases, rate-limit behavior after implementation. | Automated API checks plus manual security review. |
 
-## Screenshots
-
-Replace the placeholders below with repository-hosted images (recommended path: `docs/screenshots/`). Keep images compressed and provide meaningful alt text.
-
-| Screen | What it demonstrates | Placeholder |
-| --- | --- | --- |
-| Consumer discovery feed | Nearby cards, search, veg/non-veg filtering, trending items, and expiry context. | `![Consumer discovery feed — placeholder](docs/screenshots/consumer-feed.png)` |
-| Nearby merchant map | 10 km radius, merchant markers, availability sheet, and walking route. | `![Nearby merchant map — placeholder](docs/screenshots/nearby-map.png)` |
-| Consumer claims | Pickup token, countdown, claim status, and reservation history. | `![Consumer claims — placeholder](docs/screenshots/consumer-claims.png)` |
-| Merchant dashboard | Inventory/claim metrics and operational overview. | `![Merchant dashboard — placeholder](docs/screenshots/merchant-dashboard.png)` |
-| Listing editor | Merchant’s listing form with image and pickup window controls. | `![Listing editor — placeholder](docs/screenshots/listing-editor.png)` |
-| Pickup verification | Counter-side token validation and collected state. | `![Pickup verification — placeholder](docs/screenshots/pickup-verification.png)` |
-
 ## Challenges and engineering decisions
 
 | Challenge | Decision | Result |
