@@ -13,7 +13,62 @@ const IndianTimePicker = ({ name, value, onChange, onBlur }) => {
     const nextTime = toIndianStoredTime(key === 'hour' ? nextValue : parts.hour, key === 'minute' ? nextValue : parts.minute, key === 'meridiem' ? nextValue : parts.meridiem);
     onChange({ target: { name, value: nextTime } });
   };
-  return <div className="grid grid-cols-3 gap-2"><input type="number" min="1" max="12" value={parts.hour} onChange={(event) => update('hour', Math.min(12, Math.max(1, Number(event.target.value || 1))))} onBlur={() => onBlur?.({ target: { name, value } })} className="min-w-0 rounded-xl border-2 border-gray-200 px-2 py-2.5 focus:border-amber-400 focus:outline-none" aria-label="Hour" /><select value={parts.minute} onChange={(event) => update('minute', event.target.value)} onBlur={() => onBlur?.({ target: { name, value } })} className="w-full rounded-xl border-2 border-gray-200 bg-white px-2 py-2.5 focus:border-amber-400 focus:outline-none" aria-label="Minutes">{Array.from({ length: 60 }, (_, index) => <option key={index} value={String(index).padStart(2, '0')}>{String(index).padStart(2, '0')}</option>)}</select><select value={parts.meridiem} onChange={(event) => update('meridiem', event.target.value)} onBlur={() => onBlur?.({ target: { name, value } })} className="w-full rounded-xl border-2 border-gray-200 bg-white px-2 py-2.5 focus:border-amber-400 focus:outline-none"><option>AM</option><option>PM</option></select></div>;
+  const incHour = () => update('hour', Math.min(12, Number(parts.hour) + 1));
+  const decHour = () => update('hour', Math.max(1, Number(parts.hour) - 1));
+  return (
+    <div className="grid grid-cols-[1fr_1fr_1fr] gap-2">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={decHour}
+          onBlur={() => onBlur?.({ target: { name, value } })}
+          className="rounded-xl border-2 border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          −
+        </button>
+        <input
+          type="number"
+          min="1"
+          max="12"
+          value={parts.hour}
+          onChange={(event) => update('hour', Math.min(12, Math.max(1, Number(event.target.value || 1))))}
+          onBlur={() => onBlur?.({ target: { name, value } })}
+          className="min-w-0 rounded-xl border-2 border-gray-200 px-2 py-2.5 focus:border-amber-400 focus:outline-none"
+          aria-label="Hour"
+        />
+        <button
+          type="button"
+          onClick={incHour}
+          onBlur={() => onBlur?.({ target: { name, value } })}
+          className="rounded-xl border-2 border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          +
+        </button>
+      </div>
+      <select
+        value={parts.minute}
+        onChange={(event) => update('minute', event.target.value)}
+        onBlur={() => onBlur?.({ target: { name, value } })}
+        className="w-full rounded-xl border-2 border-gray-200 bg-white px-2 py-2.5 focus:border-amber-400 focus:outline-none"
+        aria-label="Minutes"
+      >
+        {Array.from({ length: 60 }, (_, index) => (
+          <option key={index} value={String(index).padStart(2, '0')}>
+            {String(index).padStart(2, '0')}
+          </option>
+        ))}
+      </select>
+      <select
+        value={parts.meridiem}
+        onChange={(event) => update('meridiem', event.target.value)}
+        onBlur={() => onBlur?.({ target: { name, value } })}
+        className="w-full rounded-xl border-2 border-gray-200 bg-white px-2 py-2.5 focus:border-amber-400 focus:outline-none"
+      >
+        <option>AM</option>
+        <option>PM</option>
+      </select>
+    </div>
+  );
 };
 
 const MerchantSignup = () => {
