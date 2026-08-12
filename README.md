@@ -759,6 +759,6 @@ No license file is currently present in this repository. Do not assume open-sour
 |------|--------|
 | SIVASANKARI G | [Sivag28](https://github.com/Sivag28) |
 | B UMA NANDHINI | [Umanandhini2004](https://github.com/Umanandhini2004) |
-| MALINI A | [@member3](https://github.com/member3) |
+| MALINI A | [MaliniA2006](https://github.com/MaliniA2006) |
 
 For project questions, use [GitHub Issues](https://github.com/Sivag28/Stock2Serve/issues) or replace this line with the maintainer’s preferred public contact channel.
